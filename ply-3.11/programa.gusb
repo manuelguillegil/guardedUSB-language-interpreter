@@ -1,0 +1,8 @@
+|[
+	declare
+	a, b, c : int;
+	d, e, f : array[0..2]
+	a := b + 3;
+	read e
+	// Esto es un comentario. Debe ser ignorado.
+]|
