@@ -17,6 +17,7 @@
 #To Do: 
 # Arreglar el bug
 
+## Este programa solo funciona con Python3
 import ply.lex as lex #Luthor
 import re
 import sys
