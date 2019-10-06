@@ -30,7 +30,7 @@ class CustomLexer(object):
     tokens = ['TkOBlock', 'TkCBlock', 'TkSoForth', 'TkComma', 'TkOpenPar', 'TkClosePar', 'TkAsig', 
             'TkSemicolon', 'TkArrow', 'TkPlus', 'TkMinus', 'TkMult', 'TkDiv', 'TkMod', 'TkOr', 
             'TkAnd', 'TkNot', 'TkLess', 'TkLeq', 'TkGeq', 'TkGreater', 'TkEqual', 'TkNequal', 
-            'TkOBracket', 'TkCBracket', 'TkTwoPoints', 'TkConcat', 'TkIdError', 'TkNum', 'TkId']
+            'TkOBracket', 'TkCBracket', 'TkTwoPoints', 'TkConcat', 'TkIdError', 'TkNum', 'TkId', 'TAB', 'SPACE']
 
     reservadas = {
         'if':   'TkIf',
@@ -56,7 +56,7 @@ class CustomLexer(object):
     }
     
     # Una cadena que contiene caracteres ignorados (espacios y tabulaciones) 
-    t_ignore = ' \t' 
+
     t_TkOBlock = r'\|\['
     t_TkCBlock = r'\]\|'
     t_TkSoForth = r'\.\.'
@@ -88,6 +88,16 @@ class CustomLexer(object):
     # Concatenamos los tokens y las palabras reservadas
     tokens = tokens + list(reservadas.values())
 
+    # A string containing ignored characters (spaces and tabs)
+    # Instead of t_ignore  = ' \t'
+    def t_TAB(self,t):
+        r'[\t]+'
+        pass
+
+    def t_SPACE(self,t):
+        r'[ ]+'
+        pass
+
     def t_TkIdError(self, t):
         r'\d+[a-zA-Z_][a-zA-Z0-9_]*'
         self.t_error(t)
@@ -114,6 +124,20 @@ class CustomLexer(object):
     def find_line_start(self, token, start):
         line_start = self.lexer.lexdata.rfind('\n', start, token.lexpos) + 1
         return line_start
+
+    def find_tok_column(self, token):
+        last_cr = self.lexer.lexdata.rfind('\n', 0, token.lexpos)
+        tab = self.lexer.lexdata.rfind('\t', 0, token.lexpos)
+        line_start = self.find_line_start(token,0)
+        cantidad_tabs = tab - line_start + 1
+        if (cantidad_tabs > 0):
+            token.lexpos = token.lexpos + (cantidad_tabs * 2)
+            pos = token.lexpos - last_cr
+        else:
+            pos = token.lexpos - last_cr -1
+        if last_cr < 0:
+            last_cr = 0
+        return pos
 
     def find_line(self, t):
         t.lexer.lineno += t.value.count('\n')
@@ -158,7 +182,7 @@ class CustomLexer(object):
                 prevLine = tok.lineno
 
             #Usando la lexpos del token actual y la lexpos donde comienza la línea, obtenemos la columna del token
-            col = tok.lexpos - lineStart + 1
+            col = self.find_tok_column(tok) + 1
 
             if tok.type == 'TkId':
                 output += '%s(%r) %d %d\n' % (tok.type, tok.value, tok.lineno, col)
