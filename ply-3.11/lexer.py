@@ -3,34 +3,34 @@
 ##Manuel Gil, 14-10397
 ##Diego Peña, 15-11095
 ##Fecha de inicio: 28-09-2019, 19:44 Hora de Venezuela
-##Fecha de modificación: 05-10-2019, 19:31 Hora de Venezuela
+##Fecha de modificación: 07-09-2019 17:32
 
-#Comentarios generales: Antlr es muy complicado para aprender en una semana. Viva Python y Ply
-
-#Últimas modificaciones: Ya lee el input de un archivo. Calcula correctamente el número de columna en un caso
-#de output normal siempre y cuando no haya tabs en las líneas. Da error si no tiene archivo de input o si este no
-#tiene extensión .gusb. Ya da mensajes de error
-
-#Bugs
-#No da bien el número de columnas cuando hay tabs
-
-#To Do: 
-# Arreglar el bug
+#Últimas modificaciones: Ya solucionamos el problema de que ply leía un tab como un solo caracter y por eso calculaba
+#mal las columnas. Sin embargo, trabajamos asumiendo que un tab = 4 espacios. Arreglé un error que cuando iba a revisar
+#l extensión del archivo
 
 ## Este programa solo funciona con Python3
 import ply.lex as lex #Luthor
 import re
 import sys
-import os #No se si esta va
+
+#Este lexer se basa en el tutorial que se encuentra en la documentación oficial de ply
+#http://www.dabeaz.com/ply/ply.html#ply_nn17
+
+#El lexer se trabaja dentro de una clase porque así era más fácil llevar la cuenta de los errores encontrados,
+#lo cual era necesario para determinar la información que se debía imprimir al final del análisis 
 
 class CustomLexer(object):
 
+    #Este es un atributo de la clase que permite llevar la cuenta de los errores lexicográficos encontrados
+    #ES necesario que exista, porque así la función de manejador de error puede determinar cuantos errores hay
+    #de una manera mucho más sencilla de entender para el lector
     errors = 0
 
     tokens = ['TkOBlock', 'TkCBlock', 'TkSoForth', 'TkComma', 'TkOpenPar', 'TkClosePar', 'TkAsig', 
             'TkSemicolon', 'TkArrow', 'TkPlus', 'TkMinus', 'TkMult', 'TkDiv', 'TkMod', 'TkOr', 
             'TkAnd', 'TkNot', 'TkLess', 'TkLeq', 'TkGeq', 'TkGreater', 'TkEqual', 'TkNequal', 
-            'TkOBracket', 'TkCBracket', 'TkTwoPoints', 'TkConcat', 'TkIdError', 'TkNum', 'TkId', 'TAB', 'SPACE']
+            'TkOBracket', 'TkCBracket', 'TkTwoPoints', 'TkConcat', 'TkNum', 'TkId']
 
     reservadas = {
         'if':   'TkIf',
@@ -56,7 +56,7 @@ class CustomLexer(object):
     }
     
     # Una cadena que contiene caracteres ignorados (espacios y tabulaciones) 
-
+    t_ignore = ' \t'
     t_TkOBlock = r'\|\['
     t_TkCBlock = r'\]\|'
     t_TkSoForth = r'\.\.'
@@ -88,21 +88,6 @@ class CustomLexer(object):
     # Concatenamos los tokens y las palabras reservadas
     tokens = tokens + list(reservadas.values())
 
-    # A string containing ignored characters (spaces and tabs)
-    # Instead of t_ignore  = ' \t'
-    def t_TAB(self,t):
-        r'[\t]+'
-        pass
-
-    def t_SPACE(self,t):
-        r'[ ]+'
-        pass
-
-    def t_TkIdError(self, t):
-        r'\d+[a-zA-Z_][a-zA-Z0-9_]*'
-        self.t_error(t)
-
-
     def t_TkNum(self, t):
         r'\d+'
         t.value = int(t.value)
@@ -125,11 +110,12 @@ class CustomLexer(object):
         line_start = self.lexer.lexdata.rfind('\n', start, token.lexpos) + 1
         return line_start
 
-    def find_tok_column(self, token):
-        last_cr = self.lexer.lexdata.rfind('\n', 0, token.lexpos)
-        tab = self.lexer.lexdata.rfind('\t', 0, token.lexpos)
-        line_start = self.find_line_start(token,0)
-        cantidad_tabs = tab - line_start + 1
+    #Utiliza la lexpos donde inicia la línea del token actual para calcular la columna  del mismo
+    #asume tab = 4 espacios
+    def find_tok_column(self, lineStart, token):
+        last_cr = lineStart - 1
+        tab = self.lexer.lexdata.rfind('\t', last_cr, token.lexpos)
+        cantidad_tabs = tab - last_cr
         if (cantidad_tabs > 0):
             token.lexpos = token.lexpos + (cantidad_tabs * 2)
             pos = token.lexpos - last_cr
@@ -155,8 +141,9 @@ class CustomLexer(object):
         self.errors += 1
         t.lexer.skip (1)
 
-    def build(self,**kwargs):
-         self.lexer = lex.lex(module=self, **kwargs)
+    #Esta función permite construir el lexer representado por el atributo self.lexer
+    def build(self):
+         self.lexer = lex.lex(module=self)
 
     def analysis(self, text):
         self.lexer.input(text)
@@ -182,7 +169,7 @@ class CustomLexer(object):
                 prevLine = tok.lineno
 
             #Usando la lexpos del token actual y la lexpos donde comienza la línea, obtenemos la columna del token
-            col = self.find_tok_column(tok) + 1
+            col = self.find_tok_column(lineStart, tok) + 1
 
             if tok.type == 'TkId':
                 output += '%s(%r) %d %d\n' % (tok.type, tok.value, tok.lineno, col)
@@ -196,7 +183,7 @@ class CustomLexer(object):
         else:
             print(output)
 
-############## MAIN #################### Deberíamos ponerlo en otro archivo
+############## MAIN ####################
 
 #Nos aseguramos de que haya un arcghivo de input
 try:
@@ -207,7 +194,9 @@ except:
 
 #Nos aseguramos de que el archivo input tenga la extensión requerida
 try:
-    assert('.gusb' in sys.argv[1])
+    #Si la extensión es correcta, entonces extension = .gusb
+    extension = sys.argv[1][len(sys.argv[1]) - 5: len(sys.argv[1])]
+    assert('.gusb' in extension)
 except:
     print("Este tipo de archivo no es reconocido")
     sys.exit()
