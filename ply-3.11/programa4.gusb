@@ -1,0 +1,22 @@
+|[
+    declare x, y: int
+		|[
+			declare x, y: array[2..3]
+			x := 1, 2;
+			print "print 1 " || x // x será de tipo array
+		]|;
+	|[
+		declare x, y: bool
+		x := true;
+		print "print 2 " || x // x será de tipo bool
+	]|;
+	x := 10;
+	print "print 3 " || x; // x será de tipo int
+	for x in 1 to 5 -->
+		|[
+			declare x: array[-1..0] // Esconde la declaración de x hecha por el for
+			x := 4, 5;
+			print "print 4 " || x // x será de tipo array
+		]|
+	rof
+]|

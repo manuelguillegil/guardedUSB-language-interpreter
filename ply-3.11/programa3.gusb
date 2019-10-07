@@ -1,0 +1,9 @@
+|[
+    declare
+	a, b, c : int;
+	verdad : bool;
+	a := b * 3 / 6;
+	print "Hola " || "mundo! " || 1 || "\n"
+    max(a)
+	// Esto es un comentario. Debe ser ignorado.
+]|

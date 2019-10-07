@@ -1,0 +1,11 @@
+|[
+    declare x:
+	read x;
+	if -5 <= x /\ x < 0 -->
+		println "Del -5 al 0"
+	[] x == 0 -->
+		println "Tengo un cero"
+	[] 1 <= x /\ x < 100 -->
+		println "Del 1 al 100"
+	fi
+]|

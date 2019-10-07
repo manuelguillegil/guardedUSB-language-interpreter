@@ -30,7 +30,7 @@ class CustomLexer(object):
     tokens = ['TkOBlock', 'TkCBlock', 'TkSoForth', 'TkComma', 'TkOpenPar', 'TkClosePar', 'TkAsig', 
             'TkSemicolon', 'TkArrow', 'TkPlus', 'TkMinus', 'TkMult', 'TkDiv', 'TkMod', 'TkOr', 
             'TkAnd', 'TkNot', 'TkLess', 'TkLeq', 'TkGeq', 'TkGreater', 'TkEqual', 'TkNequal', 
-            'TkOBracket', 'TkCBracket', 'TkTwoPoints', 'TkConcat', 'TkNum', 'TkId']
+            'TkOBracket', 'TkCBracket', 'TkTwoPoints', 'TkConcat', 'TkNum', 'TkId', 'TkQuote', 'TkDoubleQuote', 'TkSpace']
 
     reservadas = {
         'if':   'TkIf',
@@ -52,7 +52,7 @@ class CustomLexer(object):
         'atoi':'TkAtoi',
         'size':'TkSize',
         'max':'TkMax',
-        'min':'TkMin'
+        'min':'TkMin',
     }
     
     # Una cadena que contiene caracteres ignorados (espacios y tabulaciones) 
@@ -60,7 +60,10 @@ class CustomLexer(object):
     t_TkOBlock = r'\|\['
     t_TkCBlock = r'\]\|'
     t_TkSoForth = r'\.\.'
+    t_TkSpace = r'\\n'
     t_TkComma = r','
+    t_TkOr = r'\\/'
+    t_TkAnd = r'/\\'
     t_TkOpenPar = r'\('
     t_TkClosePar = r'\)'
     t_TkAsig = r':='
@@ -71,8 +74,6 @@ class CustomLexer(object):
     t_TkMult = r'\*'
     t_TkDiv = r'/'
     t_TkMod = r'%'
-    t_TkOr = r'\\/'
-    t_TkAnd = r'/\\'
     t_TkNot = r'!'
     t_TkLess = r'<'
     t_TkLeq = r'<='
@@ -84,6 +85,8 @@ class CustomLexer(object):
     t_TkCBracket = r'\]'
     t_TkTwoPoints = r':'
     t_TkConcat = r'\|\|'
+    t_TkQuote = r'\''
+    t_TkDoubleQuote = r'\"'
 
     # Concatenamos los tokens y las palabras reservadas
     tokens = tokens + list(reservadas.values())

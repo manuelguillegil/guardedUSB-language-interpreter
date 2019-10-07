@@ -1,0 +1,10 @@
+|[
+    declare x: int
+    x := 1;
+    println 'Numero: ' || x || ' ';
+    for i in 2 to 10 -->
+        |[
+            println i || ' '
+        ]|
+    rof
+]|
