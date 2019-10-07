@@ -3,11 +3,9 @@
 ##Manuel Gil, 14-10397
 ##Diego Peña, 15-11095
 ##Fecha de inicio: 28-09-2019, 19:44 Hora de Venezuela
-##Fecha de modificación: 07-09-2019 17:32
+##Fecha de modificación: 07-09-2019 19:25
 
-#Últimas modificaciones: Ya solucionamos el problema de que ply leía un tab como un solo caracter y por eso calculaba
-#mal las columnas. Sin embargo, trabajamos asumiendo que un tab = 4 espacios. Arreglé un error que cuando iba a revisar
-#l extensión del archivo
+#Últimas modificaciones: TkString funciona.
 
 ## Este programa solo funciona con Python3
 import ply.lex as lex #Luthor
@@ -30,7 +28,7 @@ class CustomLexer(object):
     tokens = ['TkOBlock', 'TkCBlock', 'TkSoForth', 'TkComma', 'TkOpenPar', 'TkClosePar', 'TkAsig', 
             'TkSemicolon', 'TkArrow', 'TkPlus', 'TkMinus', 'TkMult', 'TkDiv', 'TkMod', 'TkOr', 
             'TkAnd', 'TkNot', 'TkLess', 'TkLeq', 'TkGeq', 'TkGreater', 'TkEqual', 'TkNequal', 
-            'TkOBracket', 'TkCBracket', 'TkTwoPoints', 'TkConcat', 'TkNum', 'TkId']
+            'TkOBracket', 'TkCBracket', 'TkTwoPoints', 'TkConcat', 'TkNum', 'TkId', 'TkQuote', 'TkDoubleQuote', 'TkString']
 
     reservadas = {
         'if':   'TkIf',
@@ -52,7 +50,7 @@ class CustomLexer(object):
         'atoi':'TkAtoi',
         'size':'TkSize',
         'max':'TkMax',
-        'min':'TkMin'
+        'min':'TkMin',
     }
     
     # Una cadena que contiene caracteres ignorados (espacios y tabulaciones) 
@@ -61,6 +59,8 @@ class CustomLexer(object):
     t_TkCBlock = r'\]\|'
     t_TkSoForth = r'\.\.'
     t_TkComma = r','
+    t_TkOr = r'\\/'
+    t_TkAnd = r'/\\'
     t_TkOpenPar = r'\('
     t_TkClosePar = r'\)'
     t_TkAsig = r':='
@@ -71,8 +71,6 @@ class CustomLexer(object):
     t_TkMult = r'\*'
     t_TkDiv = r'/'
     t_TkMod = r'%'
-    t_TkOr = r'\\/'
-    t_TkAnd = r'/\\'
     t_TkNot = r'!'
     t_TkLess = r'<'
     t_TkLeq = r'<='
@@ -84,6 +82,7 @@ class CustomLexer(object):
     t_TkCBracket = r'\]'
     t_TkTwoPoints = r':'
     t_TkConcat = r'\|\|'
+    t_TkString = r'(")[a-zA-Z0-9_(\n) \"\\ (!)(?)]*(")'
 
     # Concatenamos los tokens y las palabras reservadas
     tokens = tokens + list(reservadas.values())
@@ -136,7 +135,8 @@ class CustomLexer(object):
 
     #Función cuando existe un error en el token
     def t_error(self, t):
-        col = t.lexpos - self.find_line_start(t, 0) + 1
+        lineStart = self.find_line_start(t, 0)
+        col = self.find_tok_column(lineStart, t) + 1
         print("Error: Unexpected character " + str(t.value[0]) + " in row " + str(t.lineno) +  ", column " + str(col))
         self.errors += 1
         t.lexer.skip (1)
@@ -175,6 +175,8 @@ class CustomLexer(object):
                 output += '%s(%r) %d %d\n' % (tok.type, tok.value, tok.lineno, col)
             elif tok.type == 'TkNum':
                 output += '%s("%r") %d %d\n' % (tok.type, tok.value, tok.lineno, col)
+            elif tok.type == 'TkString':
+                output += '%s(%r) %d %d\n' % (tok.type, tok.value, tok.lineno, col)
             else:
                 output += '%s %d %d\n' % (tok.type, tok.lineno, col)
 
