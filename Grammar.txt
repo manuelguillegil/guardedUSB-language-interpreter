@@ -1,0 +1,62 @@
+<ProgramBlock> -> |[ <declaracion> <instrucciones> ]|
+	       -> |[ <instruccion> ]|
+
+<Declaracion> -> declare <DeclareLines>
+
+<DeclareLines> -> <varDeclaration>; <declareLines>
+	       -> <varDeclaration>
+
+<VarDeclaration> -> <MultipleTypeDeclaration>
+		 -> <SingleTypeDeclaration>
+
+<MultipleTypeDeclaration> -> TkId , <InnerDelaration> , <Type>
+
+<InnerDeclaration> -> TkId , <InnerDelaration> , <Type>
+		   -> TkId : <Type>
+
+<SingleTypeDeclaration> -> <IdList> : <Type>
+
+<Type> -> TkBool
+       -> TkInt
+       -> array[TkInt..TkInt]
+
+<IdList> -> <IdList> , TkId
+	 -> TkId
+
+NOTA: <InnerDeclaration> puede parecer que confunde, pero en realidad evita que haya ambiguedad entre <MultipleTypeDeclaration> y
+<SingleTypeDeclaration> para los casos en que se declara una única variable
+
+<instrucciones> -> <instruccion> ; <instrucciones>
+		-> <instruccion>
+
+<instruccion> -> <Asignacion>
+	      -> <Ciclo>
+	      -> <Seleccion>
+	      -> <Entrada>
+	      -> <Salida> 
+	      -> <ProgramBlock>
+
+<Asignacion> -> TkId := <Expresion>
+
+<Expresion>  -> <ExpBooleana>
+			 -> <ExpInt>
+			 -> <ExpArray>
+
+(Left, +, 1)
+(Left, -, 1)
+(Left, /, 2)
+(Left, *, 2)
+(Left, %, 2)
+<ExpInt> -> <ExpInt> + <ExpInt>
+		 -> <ExpInt> - <ExpInt>
+		 -> <ExpInt> * <ExpInt>
+		 -> <ExpInt> / <ExpInt>
+		 -> <ExpInt> % <ExpInt>
+		 -> (<ExpInt>)
+		 -> <ValorInt>
+
+<ValorInt> -> - <ValorAbs>
+		   -> <ValorAbs>
+
+<ValorAbs> -> TkId
+		   -> TkNum

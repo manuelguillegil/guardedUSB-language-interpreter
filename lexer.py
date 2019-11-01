@@ -3,9 +3,9 @@
 ##Manuel Gil, 14-10397
 ##Diego Peña, 15-11095
 ##Fecha de inicio: 28-09-2019, 19:44 Hora de Venezuela
-##Fecha de modificación: 07-09-2019 19:25
+##Fecha de modificación: 31-10-2019 21:08
 
-#Últimas modificaciones: TkString funciona.
+#Últimas modificaciones:Los dos olvidamos palabras reservadas true y false. Esperemos que eso no venga a matarnos luego
 
 ## Este programa solo funciona con Python3
 import ply.lex as lex #Luthor
@@ -51,6 +51,8 @@ class CustomLexer(object):
         'size':'TkSize',
         'max':'TkMax',
         'min':'TkMin',
+        'true': 'TkTrue',
+        'false': 'TkFalse'
     }
     
     # Una cadena que contiene caracteres ignorados (espacios y tabulaciones) 
