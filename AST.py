@@ -28,7 +28,7 @@ class Node:
             print(self.value)
 
         for i in range(len(self.children)):
-            printTree(self.children[i])
+            self.children[i].printTree()
 
 
 
