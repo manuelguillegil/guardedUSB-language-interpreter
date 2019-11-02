@@ -3,11 +3,9 @@
 ##Manuel Gil, 14-10397
 ##Diego Peña, 15-11095
 ##Fecha de inicio: 28-09-2019, 19:44 Hora de Venezuela
-##Fecha de modificación: 01-11-2019, 08:16 Hora de Venezuela
+##Fecha de modificación: 01-11-2019, 21:04 Hora de Venezuela
 
-#Actualización: CReo que ya más o menos sé que hacer con el árbol
-
-#Pendiente: Resolver lo de MultipleTypeDeclaration
+#Actualización: Resolví lo de MultipleTypeDeclaration, pero no lo del árbol
 
 from lexer import CustomLexer
 from AST import Node
@@ -17,31 +15,44 @@ import sys
 
 def p_ProgramBlock(p):
     '''ProgramBlock : TkOBlock Declaration TkCBlock'''
-    p[0] = Node("Block", "Block", [p[1]])
+    p[0] = Node("Block", "Block", [p[2]])
     
 
-def p_Declaracion(p):
+def p_Declaration(p):
     '''Declaration : TkDeclare DeclareLines'''
+    p[0] = Node("Declaration", "Declare", [p[2]])
 
-def p_DeclareLinesMultiple(p):
-    '''DeclareLines: VarDeclaration TkSemiColon DeclareLines
-                   | VarDeclaration'''
+def p_DeclareLines(p):
+    '''DeclareLines : VarDeclaration TkSemiColon DeclareLines
+                    | VarDeclaration'''
+    if(len(p) == 4):
+        p[0] = Node("DeclareLines", "DeclareLines")
 
 def p_VarDeclaration(p):
     '''VarDeclaration: MultipleTypeDeclaration
                      | SingleTypeDeclaration'''
 
+def p_MultipleTypeDeclaration(p):
+    '''MultipleTypeDeclaration : TkId TkComma InnerTypeDeclaration TkComma IdType'''
+
+def p_InnerDeclaration(p):
+    '''InnerTypeDeclaration : TkId TkComma InnerTypeDeclaration TkComma IdType
+                            | TkId : TkComma'''
+
 def p_SingleTypeDeclaration(p):
     '''SingleTypeDeclaration : IdList TkTwoPoints IdType'''
+
+def p_IdList(p):
+    '''IdList : TkId TkComma IdList
+              | TkId'''
 
 def p_IdType(p):
     '''IdType : TkInt
               | TkBool
               | TkArray TkOBrackets TkNumber TkSoForth TkNumber TkCBrackets'''
 
-def p_IdList(p):
-    '''IdList : TkId TkComma IdList
-              | TkId'''
+def p_error(p):
+    print("Syntax error in input!")
 
 
 ############## MAIN ####################
