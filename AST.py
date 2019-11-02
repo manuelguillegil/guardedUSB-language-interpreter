@@ -18,7 +18,17 @@ class Node:
         if children:
             self.children = children
         else:
-            self.children = []  
+            self.children = []
+
+    def printTree(self):
+
+        if (self.category == "Ident"):
+            print(self.category + " " + self.value)
+        else:
+            print(self.value)
+
+        for i in range(len(self.children)):
+            printTree(self.children[i])
 
 
 

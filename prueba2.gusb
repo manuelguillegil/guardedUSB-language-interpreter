@@ -1,0 +1,4 @@
+|[
+	declare
+        a, b, c : int, bool, int
+]|

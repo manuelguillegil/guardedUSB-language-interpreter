@@ -15,41 +15,61 @@ import sys
 
 def p_ProgramBlock(p):
     '''ProgramBlock : TkOBlock Declaration TkCBlock'''
-    p[0] = Node("Block", "Block", [p[2]])
+    p[0] = Node("ProgramBlock", "Block", [p[2]])
     
 
 def p_Declaration(p):
     '''Declaration : TkDeclare DeclareLines'''
-    p[0] = Node("Declaration", "Declare", [p[2]])
+    p[0] = p[1]
 
 def p_DeclareLines(p):
-    '''DeclareLines : VarDeclaration TkSemiColon DeclareLines
+    '''DeclareLines : VarDeclaration DeclarationSequence
                     | VarDeclaration'''
     if(len(p) == 4):
-        p[0] = Node("DeclareLines", "DeclareLines")
+        p[0] = Node("DeclareLines", "Declare", [p[1], p[2]])
+    else:
+        p[0] = Node("DeclareLines", "Declare", [p[1]])
+
+def p_DeclarationSequence(p):
+    '''DeclarationSequence : TkSemicolon VarDeclaration DeclarationSequence
+                           | TkSemicolon VarDeclaration'''
+
+    if (len(p) == 4):
+        p[0] = Node("DeclarationSequence", "Sequence", [p[1], p[2]])
+    else:
+        p[0] = Node("DeclarationSequence", "Sequence", [p[1]])
 
 def p_VarDeclaration(p):
-    '''VarDeclaration: MultipleTypeDeclaration
-                     | SingleTypeDeclaration'''
+    '''VarDeclaration : MultipleTypeDeclaration
+                      | SingleTypeDeclaration'''
+
+    p[0] = p[1]
 
 def p_MultipleTypeDeclaration(p):
-    '''MultipleTypeDeclaration : TkId TkComma InnerTypeDeclaration TkComma IdType'''
-
-def p_InnerDeclaration(p):
-    '''InnerTypeDeclaration : TkId TkComma InnerTypeDeclaration TkComma IdType
-                            | TkId : TkComma'''
+    '''MultipleTypeDeclaration : TkId TkComma MultipleTypeDeclaration TkComma IdType
+                               | TkId TkTwoPoints TkComma'''
+    if (len(p) == 6):
+        p[3] = Node("Ident", p[1], [p[3]])
+    else:
+        p[3] = Node("Ident", p[1])
 
 def p_SingleTypeDeclaration(p):
-    '''SingleTypeDeclaration : IdList TkTwoPoints IdType'''
+    '''SingleTypeDeclaration : TkId TkComma IdList TkTwoPoints IdType'''
+
+    p[0] = Node("Ident", p[1], [p[3]])
 
 def p_IdList(p):
     '''IdList : TkId TkComma IdList
               | TkId'''
+    if(len(p) == 4):
+        p[0] = Node("Ident", p[1], [p[3]])
+    else:
+        p[0] = Node("Ident", p[1])
 
 def p_IdType(p):
     '''IdType : TkInt
               | TkBool
-              | TkArray TkOBrackets TkNumber TkSoForth TkNumber TkCBrackets'''
+              | TkArray TkOBracket TkNum TkSoForth TkNum TkCBracket'''
 
 def p_error(p):
     print("Syntax error in input!")
