@@ -1,4 +1,11 @@
 |[
-	declare
-        a, b, c : int, bool, int
+	declare 
+	a : int
+	a := (5 + 4)
+	if (5 + 4) --> println b
+	[] (5 - 4) -->
+		|[
+			println b
+		]|
+	fi;
 ]|

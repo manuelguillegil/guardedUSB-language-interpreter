@@ -2,10 +2,17 @@
 ##Entrega 2
 ##Manuel Gil, 14-10397
 ##Diego Peña, 15-11095
-##Fecha de inicio: 28-09-2019, 19:44 Hora de Venezuela
-##Fecha de modificación: 02-11-2019, 16:45 Hora de Venezuela
+##Fecha de inicio: 28-09-2019, 00:07 Hora de Venezuela
+##Fecha de modificación: 02-11-2019, 23:35 Hora de Venezuela
 
 #Actualización: Resolví lo de MultipleTypeDeclaration, pero no lo del árbol
+# Estoy tratando de hacer If, la guardia, bloque y For esencialmente
+# Si If está listo, Do debería tener una logica similar
+# Aunque For e In me están dando una recursión infinita (relacionada por In)
+# y al quitarlos, me aparece un error en el Input por el If imprimiendome:
+# Syntax error in input
+# LexToken(TkIf,'if',5,37). Para el archivo .gusb de prueba2 
+
 
 from CustomLexer import CustomLexer
 from AST import Node
@@ -42,8 +49,8 @@ def p_DeclarationSequence(p):
         p[0] = Node("DeclarationSequence", "Sequence", [p[1]])
 
 def p_VarDeclaration(p):
-    '''VarDeclaration : MultipleTypeDeclaration
-                      | SingleTypeDeclaration'''
+    '''VarDeclaration : MultipleTypeDeclaration'''
+#| SingleTypeDeclaration
 
     p[0] = p[1]
 
@@ -55,10 +62,10 @@ def p_MultipleTypeDeclaration(p):
     else:
         p[0] = Node("Ident", p[1])
 
-def p_SingleTypeDeclaration(p):
-    '''SingleTypeDeclaration : TkId TkComma IdList TkTwoPoints IdType'''
-
-    p[0] = Node("Ident", p[1], [p[3]])
+#def p_SingleTypeDeclaration(p):
+#    '''SingleTypeDeclaration : TkId TkComma IdList TkTwoPoints IdType'''
+#
+#    p[0] = Node("Ident", p[1], [p[3]])
 
 def p_IdList(p):
     '''IdList : TkId TkComma IdList
@@ -92,13 +99,40 @@ def p_InstSequence(p):
         p[0] = Node("InstSequence", "Sequence", [p[2]])
 
 def p_InstructionLine(p):
-    '''InstructionLine : Asig'''
+    '''InstructionLine : Asig
+                       | If
+                       | For'''
     p[0] = p[1]
 
 def p_Asig(p):
     '''Asig : TkId TkAsig Expression'''
     p[0] = Node("Asig", "Asig", [Node("Ident", p[1]), p[3]])
 
+def p_If(p):
+    '''If : TkIf Guard TkArrow IfContent TkFi'''
+    p[0] = Node("If", "If", [p[2], p[4]])
+
+def p_Guard(p):
+    '''Guard : Expression'''
+    p[0] = Node("Guard", "Guard", p[1])
+
+def p_IfContent(p):
+    '''IfContent : TkOBracket TkCBracket Guard TkArrow IfContent
+          | Block
+          | Instructions'''
+
+def p_For(p):
+    '''For : TkFor In TkArrow Block TkRof'''
+    p[0] = Node("For", "For", [p[2], p[4]])
+
+def p_In(p):
+    '''In : TkId TkIn Expresion TkTo Expresion'''
+    p[0] = Node("In", "In", [p[1], p[3], p[5]])
+
+def p_Block(p):
+    '''Block : TkOBlock Instructions TkCBlock'''
+    p[0] = Node("Block", "Block", p[2])
+    
 def p_Expression(p):
     '''Expression : ExpInt'''
     p[0] = Node("Expression", "Exp", [p[1]])
