@@ -12,13 +12,22 @@
 # y al quitarlos, me aparece un error en el Input por el If imprimiendome:
 # Syntax error in input
 # LexToken(TkIf,'if',5,37). Para el archivo .gusb de prueba2 
-
+## También se añadieron algunas precedencias, en este caso para la artimética
 
 from CustomLexer import CustomLexer
 from AST import Node
 import ply.yacc as yacc
 import re
 import sys
+
+
+precedence = {
+    ('right', 'TkAsig'),
+    ('left', 'TkEqual', 'TkNequal'),
+    ('left', 'TkLess', 'TkLeq', 'TkGeq', 'TkGreater'),
+    ('left', 'TkPlus', 'TkMinus'),
+    ('left', 'TkMult', 'TkDiv', 'TkMod')
+}
 
 def p_ProgramBlock(p):
     '''ProgramBlock : TkOBlock Declaration Instructions TkCBlock'''
