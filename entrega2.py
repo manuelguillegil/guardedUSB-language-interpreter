@@ -212,6 +212,7 @@ newLexer.build()
 tokens = newLexer.tokens
 precedence = (
     ('left', 'TkTwoPoints'),
+    ('left', 'TkId', 'TkInt', 'TkBool', 'TkArray'),
     ('right', 'TkAsig'),
     ('nonassoc', 'TkEqual', 'TkNequal'),
     ('left', 'TkLess', 'TkLeq', 'TkGeq', 'TkGreater'),
