@@ -192,8 +192,8 @@ def p_AbsValue(p):
         p[0] = Node("Ident", p[1])
 
 def p_error(p):
-    print("Syntax error in input")
-    print(p)
+    print("Syntax error in input:" + p)
+    print("En la linea: " + str(p.lineno))
     sys.exit()
 
 
