@@ -22,8 +22,8 @@ class Node:
 
     def printTree(self):
 
-        if (self.category == "Ident"):
-            print(self.category + " " + self.value)
+        if (self.category == "Ident" or self.category == "Literal"):
+            print(self.category + " " + str(self.value))
         else:
             print(self.value)
 
