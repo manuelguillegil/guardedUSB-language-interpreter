@@ -20,15 +20,6 @@ import ply.yacc as yacc
 import re
 import sys
 
-
-precedence = {
-    ('right', 'TkAsig'),
-    ('left', 'TkEqual', 'TkNequal'),
-    ('left', 'TkLess', 'TkLeq', 'TkGeq', 'TkGreater'),
-    ('left', 'TkPlus', 'TkMinus'),
-    ('left', 'TkMult', 'TkDiv', 'TkMod')
-}
-
 def p_ProgramBlock(p):
     '''ProgramBlock : TkOBlock Declaration Instructions TkCBlock'''
     p[0] = Node("ProgramBlock", "Block", [p[2], p[3]])
@@ -58,7 +49,8 @@ def p_DeclarationSequence(p):
         p[0] = Node("DeclarationSequence", "Sequence", [p[1]])
 
 def p_VarDeclaration(p):
-    '''VarDeclaration : MultipleTypeDeclaration'''
+    '''VarDeclaration : MultipleTypeDeclaration
+                      | SingleTypeDeclaration'''
 #| SingleTypeDeclaration
 
     p[0] = p[1]
@@ -71,10 +63,10 @@ def p_MultipleTypeDeclaration(p):
     else:
         p[0] = Node("Ident", p[1])
 
-#def p_SingleTypeDeclaration(p):
-#    '''SingleTypeDeclaration : TkId TkComma IdList TkTwoPoints IdType'''
-#
-#    p[0] = Node("Ident", p[1], [p[3]])
+def p_SingleTypeDeclaration(p):
+    '''SingleTypeDeclaration : TkId TkComma IdList TkTwoPoints IdType'''
+
+    p[0] = Node("Ident", p[1], [p[3]])
 
 def p_IdList(p):
     '''IdList : TkId TkComma IdList
@@ -110,7 +102,7 @@ def p_InstSequence(p):
 def p_InstructionLine(p):
     '''InstructionLine : Asig
                        | If
-                       | For'''
+                       '''
     p[0] = p[1]
 
 def p_Asig(p):
@@ -127,20 +119,16 @@ def p_Guard(p):
 
 def p_IfContent(p):
     '''IfContent : TkOBracket TkCBracket Guard TkArrow IfContent
-          | Block
+          | ProgramBlock
           | Instructions'''
 
-def p_For(p):
-    '''For : TkFor In TkArrow Block TkRof'''
-    p[0] = Node("For", "For", [p[2], p[4]])
+#def p_For(p):
+#    '''For : TkFor In TkArrow ProgramBlock TkRof'''
+#    p[0] = Node("For", "For", [p[2], p[4]])
 
-def p_In(p):
-    '''In : TkId TkIn Expresion TkTo Expresion'''
-    p[0] = Node("In", "In", [p[1], p[3], p[5]])
-
-def p_Block(p):
-    '''Block : TkOBlock Instructions TkCBlock'''
-    p[0] = Node("Block", "Block", p[2])
+#def p_In(p):
+#    '''In : TkId TkIn Expresion TkTo Expresion'''
+#    p[0] = Node("In", "In", [p[1], p[3], p[5]])
     
 def p_Expression(p):
     '''Expression : ExpInt'''
@@ -192,7 +180,8 @@ def p_AbsValue(p):
         p[0] = Node("Ident", p[1])
 
 def p_error(p):
-    print("Syntax error in input:" + p)
+    print("Syntax error in input:")
+    print(p)
     print("En la linea: " + str(p.lineno))
     sys.exit()
 
@@ -221,7 +210,13 @@ except:
 newLexer = CustomLexer()
 newLexer.build()
 tokens = newLexer.tokens
-precedence = (('nonassoc', 'TkEqual'), ('left', 'TkPlus', 'TkMinus'), ('left', 'TkMult', 'TkDiv', 'TkMod'))
+precedence = (
+    ('left', 'TkTwoPoints'),
+    ('right', 'TkAsig'),
+    ('nonassoc', 'TkEqual', 'TkNequal'),
+    ('left', 'TkLess', 'TkLeq', 'TkGeq', 'TkGreater'),
+    ('left', 'TkPlus', 'TkMinus'), 
+    ('left', 'TkMult', 'TkDiv', 'TkMod'))
 parser = yacc.yacc()
 
 with open(sys.argv[1]) as fp:
