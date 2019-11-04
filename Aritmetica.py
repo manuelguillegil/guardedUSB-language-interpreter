@@ -6,7 +6,7 @@ import sys
 def p_ProgramBlock(p):
     '''ProgramBlock : TkOBlock  Instructions TkCBlock'''
     p[0] = Node("ProgramBlock", "Block", p[2])
-    p[0].printTree()
+    p[0].printTree("")
 
 
 def p_Instructions(p):
@@ -36,74 +36,50 @@ def p_Asig(p):
     p[0] = Node("Asig", "Asig", [Node("Ident", p[1]), p[3]])
 
 def p_Expression(p):
-    '''Expression : ExpInt
-                  | ExpBool'''
+    '''Expression : ExpAux'''
     p[0] = Node("Expression", "Exp", [p[1]])
 
-def p_ExpBool(p):
-    '''ExpBool : ExpBool TkEqual ExpBool
-               | ExpBool TkNequal ExpBool
-               | ExpBool TkOr ExpBool
-               | ExpBool TkAnd ExpBool
-               | TkNot ExpBool
-               | TkOpenPar ExpBool TkClosePar
-               | CompInt
-               | IntValue
-               | TkTrue
-               | TkFalse'''
+def p_ExpAux(p):
+    '''ExpAux  : ExpAux TkEqual ExpAux
+               | ExpAux TkNequal ExpAux
+               | ExpAux TkGeq ExpAux
+               | ExpAux TkGreater ExpAux
+               | ExpAux TkLeq ExpAux
+               | ExpAux TkLess ExpAux
+               | ExpAux TkOr ExpAux
+               | ExpAux TkAnd ExpAux
+               | ExpAux TkPlus ExpAux
+               | ExpAux TkMinus ExpAux
+               | ExpAux TkMult ExpAux
+               | ExpAux TkDiv ExpAux
+               | ExpAux TkMod ExpAux
+               | TkOpenPar ExpAux TkClosePar
+               | ExpAux TkComma ExpAux
+               | ExpAux TkOBracket ExpAux TkCBracket
+               | ExpAux TkOpenPar ExpAux TkTwoPoints ExpAux TkClosePar
+               | TkNot ExpAux
+               | Value'''
     if p[1] != '(':
         if len(p) == 4:
             if p[2] == '==':
                 p[0] = Node("BinOp", "Equals", [p[1], p[3]])
             elif p[2] == '!=':
                 p[0] = Node("BinOp", "Nequals", [p[1], p[3]])
+            elif p[2] == '!=':
+                p[0] = Node("BinOp", "Nequals", [p[1], p[3]])
+            elif p[2] == '>=':
+                p[0] = Node("BinOp", "Geq", [p[1], p[3]])
+            elif p[2] == '>':
+                p[0] = Node('BinOp', "Greater", [p[1], p[3]])
+            elif p[2] == '<=':
+                p[0] = Node("BinOp", "Leq", [p[1], p[3]])
+            elif p[2] == '<':
+                p[0] == Node('BinOp', "Less", [p[1], p[3]])
             elif p[2] == '\\/':
                 p[0] = Node("BinOp", "Or", [p[1], p[3]])
-            else:
-                p[0] = Node("BinOp", "And", [[p[1], p[3]]])
-        elif len(p) == 3:
-            p[0] = Node("Not", "Not", [[p[1]]])
-        else:
-            if (type(p[1]) is str):
-                if (p[1] == 'true' or p[1] == 'false'):
-                    p[0] = Node("Literal", p[1])
-                else:
-                    p[0] = Node("Ident", p[1])
-            else:
-                p[0] = p[1]
-
-def p_CompInt(p):
-    '''CompInt : ExpInt TkEqual ExpInt
-               | ExpInt TkNequal ExpInt
-               | ExpInt TkGeq ExpInt
-               | ExpInt TkGreater ExpInt
-               | ExpInt TkLeq ExpInt
-               | ExpInt TkLess ExpInt'''
-    if p[2] == '==':
-        p[0] = Node("BinOp", "Equals", [p[1], p[3]])
-    elif p[2] == '!=':
-        p[0] = Node("BinOp", "Nequals", [p[1], p[3]])
-    elif p[2] == '>=':
-        p[0] = Node("BinOp", "Geq", [p[1], p[3]])
-    elif p[2] == '>':
-        p[0] == Node('BinOp', "Greater", [p[1], p[3]])
-    elif p[2] == '<=':
-        p[0] = Node("BinOp", "Leq", [p[1], p[3]])
-    else:
-        p[0] == Node('BinOp', "Less", [p[1], p[3]])
-
-
-def p_ExpInt(p):
-    '''ExpInt : ExpInt TkPlus ExpInt
-              | ExpInt TkMinus ExpInt
-              | ExpInt TkMult ExpInt
-              | ExpInt TkDiv ExpInt
-              | ExpInt TkMod ExpInt
-              | TkOpenPar ExpInt TkClosePar
-              | IntValue'''
-    if p[1] != '(':
-        if len(p) > 2:
-            if p[2] == '+':
+            elif p[2] == '/\\':
+                p[0] = Node("BinOp", "And", [p[1], p[3]])
+            elif p[2] == '+':
                 p[0] = Node("BinOp", "Plus", [p[1], p[3]])
             elif p[2] == '-':
                 p[0] = Node("BinOp", "Minus", [p[1], p[3]])
@@ -113,30 +89,52 @@ def p_ExpInt(p):
                 p[0] = Node("BinOp", "Div", [p[1], p[3]])
             elif p[2] == '%':
                 p[0] = Node("BinOp", "Mod", [p[1], p[3]])
+            elif p[2] == ',':
+                p[0] = Node("ArrayOp", "ArrElementInit", [p[1], p[3]])
             else:
                 p_error(p[2])
+        elif len(p) == 5:
+            p[0] = Node("ArrayOp", "Consult", [p[1], p[3]])
+        elif len(p) == 7:
+            p[0] = Node("ArrayOp", "ArrayAsig", [p[1], p[3], p[5]])
+        elif len(p) == 3:
+            p[0] = Node("UnOp", "Not", [p[2]])
         else:
             p[0] = p[1]
     else:
         p[0] = p[2]
 
 
-def p_IntValue(p):
-    '''IntValue : TkMinus AbsValue
-                | AbsValue'''
+def p_Value(p):
+    '''Value : TkMinus AbsValue
+             | TkMinus Function
+             | AbsValue
+             | Function'''
     if len(p) == 3:
-        p[0] = Node("IntValue", "UnaryMinus", [p[2]])
+        p[0] = Node("Value", "UnaryMinus", [p[2]])
     else:
         p[0] = p[1]
 
+def p_Function(p):
+    '''Function : TkAtoi TkOpenPar AbsValue TkClosePar
+                | TkSize TkOpenPar AbsValue TkClosePar
+                | TkMax TkOpenPar AbsValue TkClosePar
+                | TkMin TkOpenPar AbsValue TkClosePar'''
+    p[0] = Node("Function", p[1], [p[3]])
+
 def p_AbsValue(p):
     '''AbsValue : TkNum
-                | TkId'''
+                | TkId
+                | TkTrue
+                | TkFalse'''
 
     if type(p[1]) is int:
         p[0] = Node("Literal", p[1])
     else:
-        p[0] = Node("Ident", p[1])
+        if p[1] == 'true' or p[1] == 'false':
+            p[0] = Node("Literal", p[1])
+        else:
+            p[0] = Node("Ident", p[1])
 
 def p_error(p):
     print("Syntax error in input")
@@ -168,9 +166,10 @@ except:
 newLexer = CustomLexer()
 newLexer.build()
 tokens = newLexer.tokens
-precedence = (('left', 'TkEqual', 'TkNequal'), ('nonassoc', 'TkGeq', 'TkGreater', 'TkLeq', 'TkLess'),\
-             ('left', 'TkPlus', 'TkMinus'), ('left', 'TkMult', 'TkDiv', 'TkMod'), \
-             ('left', 'TkOr'), ('left', 'TkAnd'), ('left', 'TkNot'))
+precedence = (('left', 'TkTwoPoints'), ('left', 'TkEqual', 'TkNequal'), 
+             ('nonassoc', 'TkGeq', 'TkGreater', 'TkLeq', 'TkLess'), ('right', 'TkComma'), ('left', 'TkOBracket'),
+             ('left', 'TkPlus', 'TkMinus'), ('left', 'TkMult', 'TkDiv', 'TkMod'), 
+             ('left', 'TkOr'), ('left', 'TkAnd'), ('right', 'TkNot'))
 parser = yacc.yacc()
 
 with open(sys.argv[1]) as fp:
