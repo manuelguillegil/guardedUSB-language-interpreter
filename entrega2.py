@@ -15,26 +15,21 @@ import re
 import sys
 
 def p_ProgramBlock(p):
-    '''ProgramBlock : TkOBlock Declaration Instructions TkCBlock
+    '''ProgramBlock : TkOBlock TkDeclare DeclareLines Instructions TkCBlock
                     | TkOBlock Instructions TkCBlock'''
     #print("Regla1")
     if len(p) == 5:
-        p[0] = Node("ProgramBlock", "Block", [p[2]] + p[3])
+        p[0] = Node("ProgramBlock", "Block", [Node("Declare", "Declare", p[3])] + p[4])
     else:
         p[0] = Node("ProgramBlock", "Block", p[2])
     p[0].printTree("")
 
-def p_Declaration(p):
-    '''Declaration : TkDeclare DeclareLines'''
-    #print("Regla2")
-    p[0] = Node("Declare", "Declare", p[2])
-
 def p_DeclareLines(p):
-    '''DeclareLines : DeclareLines TkSemicolon VarDeclaration TkSemicolon
+    '''DeclareLines : DeclareLines VarDeclaration TkSemicolon
                     | VarDeclaration TkSemicolon'''
     #print("Regla3")
     if(len(p) == 3):
-        p[0] = p[1].children + [Node('Sequence', 'Sequence', p[2])]
+        p[0] = p[1].children + [Node('Sequence', 'Sequence', p[3])]
     else:
         p[0] = p[1]
 
