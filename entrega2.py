@@ -107,6 +107,8 @@ def p_InstSequence(p):
 def p_InstructionLine(p):
     '''InstructionLine : Asig
                        | IfDo
+                       | Println
+                       | Print
                        '''
     #print("Regla12")
     p[0] = p[1]
@@ -122,6 +124,17 @@ def p_IfDo(p):
     #print("Regla14")
     p[0] = Node(p[1], p[1], [p[2]])
 
+def p_Println(p):
+    '''Println : TkPrintln ExpAux TkSemicolon
+               | TkPrintln TkId TkSemicolon'''
+    #print("Regla15")
+    p[0] = Node("Println", "Println", [Node("Exp", "Exp", [p[2]])])
+
+def p_Print(p):
+    '''Print : TkPrint ExpAux TkSemicolon
+             | TkPrint TkId TkSemicolon'''
+    #print("Regla16")
+    p[0] = Node("Print", "Print", [Node("Exp", "Exp", [p[2]])])
 
 def p_Body(p):
     '''Body : ExpAux TkArrow Instructions GuardList
@@ -143,13 +156,13 @@ def p_GuardList(p):
         p[0] = Node("Guard", "Guard", [Node("Exp", "Exp", [p[3]])] + p[5])
 
 
-#def p_For(p):
-#    '''For : TkFor In TkArrow ProgramBlock TkRof'''
-#    p[0] = Node("For", "For", [p[2], p[4]])
+def p_For(p):
+    '''For : TkFor In TkArrow Instructions TkRof'''
+    p[0] = Node("For", "For", [Node("Exp", "Exp",  [p[2], p[4]])])
 
-#def p_In(p):
-#    '''In : TkId TkIn Expresion TkTo Expresion'''
-#    p[0] = Node("In", "In", [p[1], p[3], p[5]])
+def p_In(p):
+    '''In : TkId TkIn ExpAux TkTo ExpAux'''
+    p[0] = Node("In", "In", [Node("Exp", "Exp",  [p[1], p[3], p[5]])])
 
 def p_ExpAux(p):
     '''ExpAux  : ExpAux TkEqual ExpAux
@@ -283,6 +296,9 @@ newLexer = CustomLexer()
 newLexer.build()
 tokens = newLexer.tokens
 precedence = (
+    ('left', 'TkSemicolon'),
+    ('left', 'TkPrintln', 'TkPrint'),
+    ('left', 'TkOBracket', 'TkCBracket'),
     ('left', 'TkTwoPoints'),
     ('left', 'TkId', 'TkInt', 'TkBool', 'TkArray'),
     ('right', 'TkAsig'),
