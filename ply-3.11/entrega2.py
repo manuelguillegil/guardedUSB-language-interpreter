@@ -125,14 +125,14 @@ def p_IfDo(p):
     p[0] = Node(p[1], p[1], [p[2]])
 
 def p_Println(p):
-    '''Println : TkPrintln ExpAux
-               | TkPrintln TkId'''
+    '''Println : TkPrintln ExpAux TkSemicolon
+               | TkPrintln TkId TkSemicolon'''
     #print("Regla15")
     p[0] = Node("Println", "Println", [Node("Exp", "Exp", [p[2]])])
 
 def p_Print(p):
-    '''Print : TkPrint ExpAux
-            |'''
+    '''Print : TkPrint ExpAux TkSemicolon
+             | TkPrint TkId TkSemicolon'''
     #print("Regla16")
     p[0] = Node("Print", "Print", [Node("Exp", "Exp", [p[2]])])
 
