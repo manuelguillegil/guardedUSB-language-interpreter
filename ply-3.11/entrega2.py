@@ -27,16 +27,26 @@ def p_ProgramBlock(p):
 def p_Declaration(p):
     '''Declaration : TkDeclare DeclareLines'''
     #print("Regla2")
-    p[0] = Node("Declare", "Declare", p[2])
+    p[0] = p[2]
 
 def p_DeclareLines(p):
-    '''DeclareLines : DeclareLines TkSemicolon VarDeclaration TkSemicolon
-                    | VarDeclaration TkSemicolon'''
+    '''DeclareLines : VarDeclaration DeclarationSequence
+                    | VarDeclaration'''
     #print("Regla3")
     if(len(p) == 3):
-        p[0] = p[1].children + [Node('Sequence', 'Sequence', p[2])]
+        p[0] = Node("DeclareLines", "Declare", [p[1], p[2]])
     else:
-        p[0] = p[1]
+        p[0] = Node("DeclareLines", "Declare", [p[1]])
+
+
+def p_DeclarationSequence(p):
+    '''DeclarationSequence : TkSemicolon VarDeclaration DeclarationSequence
+                           | TkSemicolon VarDeclaration'''
+    #print("Regla4")
+    if (len(p) == 4):
+        p[0] = Node("DeclarationSequence", "Sequence", [p[1], p[2]])
+    else:
+        p[0] = Node("DeclarationSequence", "Sequence", [p[1]])
 
 def p_VarDeclaration(p):
     '''VarDeclaration : MultipleTypeDeclaration
@@ -54,16 +64,14 @@ def p_MultipleTypeDeclaration(p):
     else:
         p[0] = Node("Ident", p[1])
 
-
-
 def p_SingleTypeDeclaration(p):
-    '''SingleTypeDeclaration : IdList TkId TkTwoPoints IdType'''
+    '''SingleTypeDeclaration : TkId TkComma IdList TkTwoPoints IdType'''
     #print("Regla7")
     p[0] = Node("Ident", p[1], [p[3]])
 
 def p_IdList(p):
-    '''IdList : IdList TkId TkComma
-              | TkId TkComma'''
+    '''IdList : TkId TkComma IdList
+              | TkId'''
     #print("Regla8")
     if(len(p) == 4):
         p[0] = Node("Ident", p[1], [p[3]])
@@ -132,7 +140,7 @@ def p_Print(p):
 def p_Body(p):
     '''Body : ExpAux TkArrow Instructions GuardList
             | ExpAux TkArrow Instructions'''
-    print("Regla15")
+    #print("Regla15")
     if len(p) == 5:
         p[0] = Node("Guard", "Guard", [Node("Exp", "Exp", [p[1]])] + p[3] + [p[4]])
     else:
@@ -140,13 +148,13 @@ def p_Body(p):
 
 
 def p_GuardList(p):
-    '''GuardList : TkGuard ExpAux TkArrow Instructions GuardList
-                 | TkGuard ExpAux TkArrow Instructions'''
-    print("Regla16")
+    '''GuardList : TkOBracket TkCBracket ExpAux TkArrow Instructions GuardList
+                 | TkOBracket TkCBracket ExpAux TkArrow Instructions'''
+    #print("Regla16")
     if len(p) == 7:
-        p[0] = Node("Guard", "Guard", [Node("Exp", "Exp", [p[2]])] + p[4] + [p[5]])
+        p[0] = Node("Guard", "Guard", [Node("Exp", "Exp", [p[3]])] + p[5] + [p[6]])
     else:
-        p[0] = Node("Guard", "Guard", [Node("Exp", "Exp", [p[2]])] + p[4])
+        p[0] = Node("Guard", "Guard", [Node("Exp", "Exp", [p[3]])] + p[5])
 
 
 def p_For(p):
@@ -293,11 +301,11 @@ precedence = (
     ('left', 'TkPrintln', 'TkPrint'),
     ('left', 'TkOBracket', 'TkCBracket'),
     ('left', 'TkTwoPoints'),
-    #('left', 'TkId', 'TkInt', 'TkBool', 'TkArray'),
-    #('right', 'TkAsig'),
+    ('left', 'TkId', 'TkInt', 'TkBool', 'TkArray'),
+    ('right', 'TkAsig'),
     ('left', 'TkEqual', 'TkNequal'),
     ('nonassoc', 'TkLess', 'TkLeq', 'TkGeq', 'TkGreater'),
-    ('right', 'TkComma'), ('left', 'TkOBracket'), 
+    ('right', 'TkComma'), #('nonassoc', 'TkOBracket', 'TkCBracket'), 
     ('left', 'TkPlus', 'TkMinus'), 
     ('left', 'TkMult', 'TkDiv', 'TkMod'),
     ('left', 'TkOr'), ('left', 'TkAnd'), ('right', 'TkNot'))

@@ -1,11 +1,7 @@
 |[
 	declare 
 	a : int
-	a := (5 + 4)
-	if (5 + 4) --> println b
-	[] (5 - 4) -->
-		|[
-			println b
-		]|
-	fi;
+	for a in 1 to 50 -->
+		println a + b;
+	rof
 ]|
