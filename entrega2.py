@@ -284,9 +284,9 @@ newLexer = CustomLexer()
 newLexer.build()
 tokens = newLexer.tokens
 precedence = (
-    ('left', 'TkSemicolon'),
-    ('left', 'TkPrintln', 'TkPrint'),
-    ('left', 'TkOBracket', 'TkCBracket'),
+    #('left', 'TkSemicolon'),
+    #('left', 'TkPrintln', 'TkPrint'),
+    #('left', 'TkOBracket', 'TkCBracket'),
     ('left', 'TkTwoPoints'),
     #('left', 'TkId', 'TkInt', 'TkBool', 'TkArray'),
     #('right', 'TkAsig'),
