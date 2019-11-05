@@ -109,6 +109,7 @@ def p_InstructionLine(p):
                        | IfDo
                        | Println
                        | Print
+                       | For
                        '''
     #print("Regla12")
     p[0] = p[1]
@@ -156,13 +157,13 @@ def p_GuardList(p):
         p[0] = Node("Guard", "Guard", [Node("Exp", "Exp", [p[3]])] + p[5])
 
 
-#def p_For(p):
-#    '''For : TkFor In TkArrow ProgramBlock TkRof'''
-#    p[0] = Node("For", "For", [p[2], p[4]])
+def p_For(p):
+    '''For : TkFor In TkArrow Instructions TkRof'''
+    p[0] = Node("For", "For", [Node("In", "In",  [p[2]]), Node("Block", "Block",  p[4])  ])
 
-#def p_In(p):
-#    '''In : TkId TkIn Expresion TkTo Expresion'''
-#    p[0] = Node("In", "In", [p[1], p[3], p[5]])
+def p_In(p):
+    '''In : TkId TkIn ExpAux TkTo ExpAux'''
+    p[0] = Node("Ident", p[1], [p[3], p[5]])
 
 def p_ExpAux(p):
     '''ExpAux  : ExpAux TkEqual ExpAux
