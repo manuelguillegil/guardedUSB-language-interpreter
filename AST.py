@@ -32,12 +32,31 @@ class Node:
             print(indent + self.value)
 
         for i in range(len(self.children)):
-            try:
+            # try:
                 self.children[i].printTree(indent + " ")
-            except:
-                 print("Error")
-                 print(self.value)
-                 print(self.children)
+            # except:
+            #      print("Error")
+            #      print(self.value)
+            #      print(len(self.children))
+            #      print(self.children)
+            #      print("Fin error")
+            #      sys.exit()
+
+class DecNode(Node):
+    def __init__(self, category, value, children=None, last=None):
+        super().__init__(category, value, children)
+        self.lastLine = last
+
+    #Esto me permite que cada línea de declaración se vea como hija de la línea anterior
+    def addChildren(self, newChildren):
+        if self.lastLine: #Si esta es la última línea de declaración leída, el hijo va aquí
+            sequence = len(self.children) #Esta es la ubicación en la lista de hijos donde va el nuevo hijo
+            self.lastLine = False #Esta ya no es la última línea declarada
+            self.children = self.children + newChildren
+            self.children[sequence].children[0].lastLine = True
+        else: #Si no, debemos revisar la siguiente línea
+            sequence = len(self.children) - 1 #Ubicación en la lista de hijos donde va el nodo secuenciación
+            self.children[sequence].children[0].addChildren(newChildren)
 
 
         

@@ -9,7 +9,7 @@
 #Voy a ver si mañana puedo cambiar eso sin joder todo
 
 from CustomLexer import CustomLexer
-from AST import Node
+from AST import Node, DecNode
 import ply.yacc as yacc
 import re
 import sys
@@ -18,23 +18,27 @@ def p_ProgramBlock(p):
     '''ProgramBlock : TkOBlock TkDeclare DeclareLines Instructions TkCBlock
                     | TkOBlock Instructions TkCBlock'''
     #print("Regla1")
-    if len(p) == 5:
-        p[0] = Node("ProgramBlock", "Block", [Node("Declare", "Declare", p[3])] + p[4])
+    if len(p) == 6:
+        p[0] = Node("ProgramBlock", "Block", [Node("Declare", "Declare", [p[3]])] + p[4])
     else:
         p[0] = Node("ProgramBlock", "Block", p[2])
+        #print(len(p[0].children))
     p[0].printTree("")
 
 def p_DeclareLines(p):
-    '''DeclareLines : DeclareLines VarDeclaration TkSemicolon
-                    | VarDeclaration TkSemicolon'''
+    '''DeclareLines : DeclareLines VarDeclaration
+                    | VarDeclaration'''
     #print("Regla3")
     if(len(p) == 3):
-        p[0] = p[1].children + [Node('Sequence', 'Sequence', p[3])]
-    else:
+        SequenceChild = DecNode("DeclarationLine", "DeclarationLine", p[2])
+        p[1].addChildren([Node('Sequence', 'Sequence', [SequenceChild])])
         p[0] = p[1]
+    else:
+        #p[1]contiene una lista de variables declaradas en esa línea
+        p[0] = DecNode("DeclarationLine", "DeclarationLine", p[1], True)
 
 def p_VarDeclaration(p):
-    '''VarDeclaration : MultipleTypeDeclaration
+    '''VarDeclaration : MultipleTypeDeclaration TkSemicolon
                       | SingleTypeDeclaration'''
 #| SingleTypeDeclaration
     #print("Regla5")
@@ -45,25 +49,28 @@ def p_MultipleTypeDeclaration(p):
                                | TkId TkTwoPoints IdType'''
     #print("Regla6")
     if (len(p) == 6):
-        p[0] = Node("Ident", p[1], [p[3]])
+        p[0] = [Node("Ident", p[1])] + p[3]
     else:
-        p[0] = Node("Ident", p[1])
-
-
+        p[0] = [Node("Ident", p[1])]
 
 def p_SingleTypeDeclaration(p):
-    '''SingleTypeDeclaration : IdList TkId TkTwoPoints IdType'''
-    #print("Regla7")
-    p[0] = Node("Ident", p[1], [p[3]])
+    '''SingleTypeDeclaration : TkId TkComma SingleTypeDeclaration
+                             | TkId TkComma TkId TkTwoPoints IdType TkSemicolon'''
+    if len(p) == 4:
+        p[0] = [Node("Ident", p[1])] + p[3]
+    else:
+        p[0] = [Node("Ident", p[1]), Node("Ident", p[3])]
 
 def p_IdList(p):
     '''IdList : IdList TkId TkComma
               | TkId TkComma'''
-    #print("Regla8")
+    print("Regla8")
     if(len(p) == 4):
-        p[0] = Node("Ident", p[1], [p[3]])
+        p[1].append(Node('Ident', p[2]))
+        p[0] = p[1]
     else:
-        p[0] = Node("Ident", p[1])
+        p[0] = [Node("Ident", p[1])]
+        print(p[0])
 
 def p_IdType(p):
     '''IdType : TkInt
@@ -80,7 +87,6 @@ def p_Instructions(p):
         p[0] = [p[1], p[2]]
     else:
         p[0] = [p[1]]
-
 
 def p_InstSequence(p):
     '''InstSequence : TkSemicolon InstructionLine InstSequence
@@ -112,22 +118,22 @@ def p_IfDo(p):
     #print("Regla14")
     p[0] = Node(p[1], p[1], [p[2]])
 
-def p_Println(p):
-    '''Println : TkPrintln ExpAux TkSemicolon
-               | TkPrintln TkId TkSemicolon'''
-    #print("Regla15")
-    p[0] = Node("Println", "Println", [Node("Exp", "Exp", [p[2]])])
+# def p_Println(p):
+#     '''Println : TkPrintln ExpAux TkSemicolon
+#                | TkPrintln TkId TkSemicolon'''
+#     #print("Regla15")
+#     p[0] = Node("Println", "Println", [Node("Exp", "Exp", [p[2]])])
 
-def p_Print(p):
-    '''Print : TkPrint ExpAux TkSemicolon
-             | TkPrint TkId TkSemicolon'''
-    #print("Regla16")
-    p[0] = Node("Print", "Print", [Node("Exp", "Exp", [p[2]])])
+# def p_Print(p):
+#     '''Print : TkPrint ExpAux TkSemicolon
+#              | TkPrint TkId TkSemicolon'''
+#     #print("Regla16")
+#     p[0] = Node("Print", "Print", [Node("Exp", "Exp", [p[2]])])
 
 def p_Body(p):
     '''Body : ExpAux TkArrow Instructions GuardList
             | ExpAux TkArrow Instructions'''
-    print("Regla15")
+    #print("Regla15")
     if len(p) == 5:
         p[0] = Node("Guard", "Guard", [Node("Exp", "Exp", [p[1]])] + p[3] + [p[4]])
     else:
@@ -137,7 +143,7 @@ def p_Body(p):
 def p_GuardList(p):
     '''GuardList : TkGuard ExpAux TkArrow Instructions GuardList
                  | TkGuard ExpAux TkArrow Instructions'''
-    print("Regla16")
+    #print("Regla16")
     if len(p) == 7:
         p[0] = Node("Guard", "Guard", [Node("Exp", "Exp", [p[2]])] + p[4] + [p[5]])
     else:
@@ -292,7 +298,8 @@ precedence = (
     #('right', 'TkAsig'),
     ('left', 'TkEqual', 'TkNequal'),
     ('nonassoc', 'TkLess', 'TkLeq', 'TkGeq', 'TkGreater'),
-    ('right', 'TkComma'), ('left', 'TkOBracket'), 
+    ('right', 'TkComma'), 
+    ('left', 'TkOBracket'), 
     ('left', 'TkPlus', 'TkMinus'), 
     ('left', 'TkMult', 'TkDiv', 'TkMod'),
     ('left', 'TkOr'), ('left', 'TkAnd'), ('right', 'TkNot'))
