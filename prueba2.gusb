@@ -1,7 +1,6 @@
 |[
 	declare 
 	a : int
-	for a in 1 to 50 -->
-		println a + b;
-	rof
+	print "hola" || a || b + a || u + e || y + q || "epale" || a;
+	print "epale"
 ]|

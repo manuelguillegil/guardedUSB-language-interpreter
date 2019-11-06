@@ -118,6 +118,7 @@ def p_IfDo(p):
     #print("Regla14")
     p[0] = Node(p[1], p[1], [p[2]])
 
+<<<<<<< HEAD
 # def p_Println(p):
 #     '''Println : TkPrintln ExpAux TkSemicolon
 #                | TkPrintln TkId TkSemicolon'''
@@ -129,6 +130,52 @@ def p_IfDo(p):
 #              | TkPrint TkId TkSemicolon'''
 #     #print("Regla16")
 #     p[0] = Node("Print", "Print", [Node("Exp", "Exp", [p[2]])])
+=======
+def p_Println(p):
+    '''Println : TkPrintln ExpAux
+               | TkPrintln TkString TkConcat Concat
+               | TkPrintln ExpAux TkConcat Concat
+               | TkPrintln TkString'''
+    #print("Regla15")
+    if p[2] == 'ExpAux':
+        p[0] = Node("Println", "Println", [Node("Exp", "Exp", [p[2]])])
+    elif len(p) > 3 and isinstance(p[2], str):
+        p[0] = Node("Println", "Println", [Node("String", p[2]) , Node("Concat", "Concat", [p[4]])])
+    elif len(p) > 3 and not  isinstance(p[2], str):
+        p[0] = Node("Println", "Println", [Node("Exp", "Exp", [p[2]]) , Node("Concat", "Concat", [p[4]])])
+    else:
+        p[0] = Node("Println", "Println", [Node("String", p[2])])
+
+def p_Print(p):
+    '''Print : TkPrint ExpAux
+               | TkPrint TkString TkConcat Concat
+               | TkPrint ExpAux TkConcat Concat
+               | TkPrint TkString'''
+    if p[2] == 'ExpAux':
+        p[0] = Node("Print", "Print", [Node("Exp", "Exp", [p[2]])])
+    elif len(p) > 3 and isinstance(p[2], str):
+        p[0] = Node("Print", "Print", [Node("String", p[2]) , Node("Concat", "Concat", [p[4]])])
+    elif len(p) > 3 and not  isinstance(p[2], str):
+        p[0] = Node("Print", "Print", [Node("Exp", "Exp", [p[2]]) , Node("Concat", "Concat", [p[4]])])
+    else:
+        p[0] = Node("Print", "Print", [Node("String", p[2])])
+
+def p_Concat(p):
+    '''Concat : TkString TkConcat Concat
+               | ExpAux TkConcat Concat
+               | TkString
+               | ExpAux'''
+    if len(p) > 3 and not isinstance(p[1], str):
+        p[0] = Node("Concat", "Concat", [Node("Exp", "Exp", [p[1]]) , Node("Concat", "Concat", [p[3]])])
+    elif len(p) > 3 and isinstance(p[1], str):
+        p[0] = Node("Concat", "Concat", [Node("String", p[1]) , Node("Concat", "Concat", [p[3]])])
+    elif len(p) < 3 and isinstance(p[1], str):
+        p[0] = Node("String", p[1])
+    elif len(p) < 3 and not isinstance(p[1], str):
+        p[0] = Node("Exp", "Exp", [p[1]])
+    else:
+        pass
+>>>>>>> d66a58489142c6b4ccdfcc44f0e89de0d84b6da5
 
 def p_Body(p):
     '''Body : ExpAux TkArrow Instructions GuardList
