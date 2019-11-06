@@ -19,7 +19,7 @@ class CustomLexer(object):
     tokens = ['TkOBlock', 'TkCBlock', 'TkSoForth', 'TkComma', 'TkOpenPar', 'TkClosePar', 'TkAsig', 
             'TkSemicolon', 'TkArrow', 'TkPlus', 'TkMinus', 'TkMult', 'TkDiv', 'TkMod', 'TkOr', 
             'TkAnd', 'TkNot', 'TkLess', 'TkLeq', 'TkGeq', 'TkGreater', 'TkEqual', 'TkNequal', 'TkGuard',
-            'TkOBracket', 'TkCBracket', 'TkTwoPoints', 'TkConcat', 'TkNum', 'TkId', 'TkQuote', 'TkDoubleQuote', 'TkString']
+            'TkOBracket', 'TkCBracket', 'TkTwoPoints', 'TkConcat', 'TkNum', 'TkId', 'TkString']
 
     reservadas = {
         'if':   'TkIf',
@@ -76,7 +76,7 @@ class CustomLexer(object):
     t_TkCBracket = r'\]'
     t_TkTwoPoints = r':'
     t_TkConcat = r'\|\|'
-    t_TkString = r'(")[a-zA-Z0-9_(\n) \"\\ (!)(?)]*(")'
+    t_TkString = r'(")[a-zA-Z0-9_(\n) \":;\\ \]\[\.(!)(?)]*(")'
 
     # Concatenamos los tokens y las palabras reservadas
     tokens = tokens + list(reservadas.values())

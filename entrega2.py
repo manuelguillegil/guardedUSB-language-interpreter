@@ -14,6 +14,11 @@ import ply.yacc as yacc
 import re
 import sys
 
+def p_Start(p):
+    '''Start : ProgramBlock'''
+    p[0] = p[1]
+    p[0].printTree("")
+
 def p_ProgramBlock(p):
     '''ProgramBlock : TkOBlock TkDeclare DeclareLines Instructions TkCBlock
                     | TkOBlock Instructions TkCBlock'''
@@ -23,7 +28,6 @@ def p_ProgramBlock(p):
     else:
         p[0] = Node("ProgramBlock", "Block", p[2])
         #print(len(p[0].children))
-    p[0].printTree("")
 
 def p_DeclareLines(p):
     '''DeclareLines : DeclareLines VarDeclaration
@@ -61,17 +65,6 @@ def p_SingleTypeDeclaration(p):
     else:
         p[0] = [Node("Ident", p[1]), Node("Ident", p[3])]
 
-def p_IdList(p):
-    '''IdList : IdList TkId TkComma
-              | TkId TkComma'''
-    print("Regla8")
-    if(len(p) == 4):
-        p[1].append(Node('Ident', p[2]))
-        p[0] = p[1]
-    else:
-        p[0] = [Node("Ident", p[1])]
-        print(p[0])
-
 def p_IdType(p):
     '''IdType : TkInt
               | TkBool
@@ -103,6 +96,8 @@ def p_InstructionLine(p):
                        | Println
                        | Print
                        | For
+                       | ProgramBlock
+                       | Read
                        '''
     #print("Regla12")
     p[0] = p[1]
@@ -118,19 +113,6 @@ def p_IfDo(p):
     #print("Regla14")
     p[0] = Node(p[1], p[1], [p[2]])
 
-<<<<<<< HEAD
-# def p_Println(p):
-#     '''Println : TkPrintln ExpAux TkSemicolon
-#                | TkPrintln TkId TkSemicolon'''
-#     #print("Regla15")
-#     p[0] = Node("Println", "Println", [Node("Exp", "Exp", [p[2]])])
-
-# def p_Print(p):
-#     '''Print : TkPrint ExpAux TkSemicolon
-#              | TkPrint TkId TkSemicolon'''
-#     #print("Regla16")
-#     p[0] = Node("Print", "Print", [Node("Exp", "Exp", [p[2]])])
-=======
 def p_Println(p):
     '''Println : TkPrintln ExpAux
                | TkPrintln TkString TkConcat Concat
@@ -160,6 +142,10 @@ def p_Print(p):
     else:
         p[0] = Node("Print", "Print", [Node("String", p[2])])
 
+def p_Read(p):
+    '''Read : Tkread TkId'''
+    p[0] = Node("Read", "Read", [Node("Ident", p[2])])
+
 def p_Concat(p):
     '''Concat : TkString TkConcat Concat
                | ExpAux TkConcat Concat
@@ -175,7 +161,6 @@ def p_Concat(p):
         p[0] = Node("Exp", "Exp", [p[1]])
     else:
         pass
->>>>>>> d66a58489142c6b4ccdfcc44f0e89de0d84b6da5
 
 def p_Body(p):
     '''Body : ExpAux TkArrow Instructions GuardList
@@ -198,8 +183,9 @@ def p_GuardList(p):
 
 
 def p_For(p):
-    '''For : TkFor In TkArrow Instructions TkRof'''
-    p[0] = Node("For", "For", [Node("In", "In",  [p[2]]), Node("Block", "Block",  p[4])  ])
+    '''For : TkFor In TkArrow ProgramBlock TkRof'''
+    #print("Hey there")
+    p[0] = Node("For", "For", [Node("In", "In",  [p[2]]), p[4]])
 
 def p_In(p):
     '''In : TkId TkIn ExpAux TkTo ExpAux'''
@@ -246,6 +232,7 @@ def p_ExpAux(p):
             elif p[2] == '\\/':
                 p[0] = Node("BinOp", "Or", [p[1], p[3]])
             elif p[2] == '/\\':
+                #print("Hello")
                 p[0] = Node("BinOp", "And", [p[1], p[3]])
             elif p[2] == '+':
                 p[0] = Node("BinOp", "Plus", [p[1], p[3]])
@@ -283,6 +270,7 @@ def p_Value(p):
     if len(p) == 3:
         p[0] = Node("Value", "UnaryMinus", [p[2]])
     else:
+        #print(p[1].value)
         p[0] = p[1]
 
 def p_Function(p):
@@ -291,6 +279,7 @@ def p_Function(p):
                 | TkMax TkOpenPar AbsValue TkClosePar
                 | TkMin TkOpenPar AbsValue TkClosePar'''
     #print("Regla19")
+    #print(p[3].value)
     p[0] = Node("Function", p[1], [p[3]])
 
 def p_AbsValue(p):
@@ -344,12 +333,13 @@ precedence = (
     #('left', 'TkId', 'TkInt', 'TkBool', 'TkArray'),
     #('right', 'TkAsig'),
     ('left', 'TkEqual', 'TkNequal'),
+    ('left', 'TkOr'), ('left', 'TkAnd'), ('right', 'TkNot'),
     ('nonassoc', 'TkLess', 'TkLeq', 'TkGeq', 'TkGreater'),
     ('right', 'TkComma'), 
     ('left', 'TkOBracket'), 
     ('left', 'TkPlus', 'TkMinus'), 
     ('left', 'TkMult', 'TkDiv', 'TkMod'),
-    ('left', 'TkOr'), ('left', 'TkAnd'), ('right', 'TkNot'))
+    ('nonassoc', 'TkAtoi', 'TkSize', 'TkMax', 'TkMin'))
 parser = yacc.yacc()
 
 with open(sys.argv[1]) as fp:
