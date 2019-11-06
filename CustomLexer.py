@@ -18,7 +18,7 @@ class CustomLexer(object):
 
     tokens = ['TkOBlock', 'TkCBlock', 'TkSoForth', 'TkComma', 'TkOpenPar', 'TkClosePar', 'TkAsig', 
             'TkSemicolon', 'TkArrow', 'TkPlus', 'TkMinus', 'TkMult', 'TkDiv', 'TkMod', 'TkOr', 
-            'TkAnd', 'TkNot', 'TkLess', 'TkLeq', 'TkGeq', 'TkGreater', 'TkEqual', 'TkNequal', 
+            'TkAnd', 'TkNot', 'TkLess', 'TkLeq', 'TkGeq', 'TkGreater', 'TkEqual', 'TkNequal', 'TkGuard',
             'TkOBracket', 'TkCBracket', 'TkTwoPoints', 'TkConcat', 'TkNum', 'TkId', 'TkQuote', 'TkDoubleQuote', 'TkString']
 
     reservadas = {
@@ -71,6 +71,7 @@ class CustomLexer(object):
     t_TkGreater = r'>'
     t_TkEqual = r'=='
     t_TkNequal = r'!='
+    t_TkGuard = r'\[\]'
     t_TkOBracket = r'\['
     t_TkCBracket = r'\]'
     t_TkTwoPoints = r':'
