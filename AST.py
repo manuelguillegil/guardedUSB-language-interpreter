@@ -32,15 +32,15 @@ class Node:
             print(indent + self.value)
 
         for i in range(len(self.children)):
-            # try:
+            try:
                 self.children[i].printTree(indent + " ")
-            # except:
-            #      print("Error")
-            #      print(self.value)
-            #      print(len(self.children))
-            #      print(self.children)
-            #      print("Fin error")
-            #      sys.exit()
+            except:
+                 print("Error")
+                 print(self.value)
+                 print(len(self.children))
+                 print(self.children)
+                 print("Fin error")
+                 sys.exit()
 
 class DecNode(Node):
     def __init__(self, category, value, children=None, last=None):

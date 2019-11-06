@@ -93,8 +93,7 @@ def p_InstSequence(p):
 def p_InstructionLine(p):
     '''InstructionLine : Asig
                        | IfDo
-                       | Println
-                       | Print
+                       | Printing
                        | For
                        | ProgramBlock
                        | Read
@@ -113,34 +112,26 @@ def p_IfDo(p):
     #print("Regla14")
     p[0] = Node(p[1], p[1], [p[2]])
 
-def p_Println(p):
-    '''Println : TkPrintln ExpAux
-               | TkPrintln TkString TkConcat Concat
-               | TkPrintln ExpAux TkConcat Concat
-               | TkPrintln TkString'''
+def p_Printing(p):
+    '''Printing : TkPrintln ExpAux
+                | TkPrint ExpAux
+                | TkPrintln TkString TkConcat Concat
+                | TkPrint TkString TkConcat Concat
+                | TkPrintln ExpAux TkConcat Concat
+                | TkPrint ExpAux TkConcat Concat
+                | TkPrintln TkString
+                | TkPrint TkString'''
     #print("Regla15")
-    if p[2] == 'ExpAux':
-        p[0] = Node("Println", "Println", [Node("Exp", "Exp", [p[2]])])
-    elif len(p) > 3 and isinstance(p[2], str):
-        p[0] = Node("Println", "Println", [Node("String", p[2]) , Node("Concat", "Concat", [p[4]])])
-    elif len(p) > 3 and not  isinstance(p[2], str):
-        p[0] = Node("Println", "Println", [Node("Exp", "Exp", [p[2]]) , Node("Concat", "Concat", [p[4]])])
+    if len(p) == 3:
+        if type(p[2]) is str:
+            p[0] = Node(p[1], p[1], [Node("String", p[2])])
+        else:
+            p[0] = Node(p[1], p[1], [Node("Exp", "Exp", [p[2]])])
     else:
-        p[0] = Node("Println", "Println", [Node("String", p[2])])
-
-def p_Print(p):
-    '''Print : TkPrint ExpAux
-               | TkPrint TkString TkConcat Concat
-               | TkPrint ExpAux TkConcat Concat
-               | TkPrint TkString'''
-    if p[2] == 'ExpAux':
-        p[0] = Node("Print", "Print", [Node("Exp", "Exp", [p[2]])])
-    elif len(p) > 3 and isinstance(p[2], str):
-        p[0] = Node("Print", "Print", [Node("String", p[2]) , Node("Concat", "Concat", [p[4]])])
-    elif len(p) > 3 and not  isinstance(p[2], str):
-        p[0] = Node("Print", "Print", [Node("Exp", "Exp", [p[2]]) , Node("Concat", "Concat", [p[4]])])
-    else:
-        p[0] = Node("Print", "Print", [Node("String", p[2])])
+        if type(p[2]) is str:
+            p[0] = Node(p[1], p[1], [Node("String", p[2]) , Node("Concat", "Concat", [p[4]])])
+        else:
+            p[0] = Node(p[1], p[1], [Node("Exp", "Exp", [p[2]]) , Node("Concat", "Concat", [p[4]])])
 
 def p_Read(p):
     '''Read : Tkread TkId'''
@@ -228,11 +219,10 @@ def p_ExpAux(p):
             elif p[2] == '<=':
                 p[0] = Node("BinOp", "Leq", [p[1], p[3]])
             elif p[2] == '<':
-                p[0] == Node('BinOp', "Less", [p[1], p[3]])
+                p[0] = Node('BinOp', "Less", [p[1], p[3]])
             elif p[2] == '\\/':
                 p[0] = Node("BinOp", "Or", [p[1], p[3]])
             elif p[2] == '/\\':
-                #print("Hello")
                 p[0] = Node("BinOp", "And", [p[1], p[3]])
             elif p[2] == '+':
                 p[0] = Node("BinOp", "Plus", [p[1], p[3]])
@@ -249,7 +239,7 @@ def p_ExpAux(p):
             else:
                 p_error(p[2])
         elif len(p) == 5:
-            p[0] = Node("ArrayOp", "Consult", [p[1], p[3]])
+            p[0] = Node("ArrayOp", "ArrConsult", [p[1], p[3]])
         elif len(p) == 7:
             p[0] = Node("ArrayOp", "ArrayAsig", [p[1], p[3], p[5]])
         elif len(p) == 3:
