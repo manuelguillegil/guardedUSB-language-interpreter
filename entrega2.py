@@ -2,8 +2,8 @@
 ##Entrega 2
 ##Manuel Gil, 14-10397
 ##Diego Peña, 15-11095
-##Fecha de inicio: 28-09-2019, 00:07 Hora de Venezuela
-##Fecha de modificación: 03-11-2019, 21:54 Hora de Venezuela
+##Fecha de inicio: 28-09-2019
+##Fecha de modificación: 06-11-2019 
 
 #Actualización: Desaparecí los conflictos pero ahora o funciona el if o la consulta de arreglos.
 #Voy a ver si mañana puedo cambiar eso sin joder todo
@@ -30,19 +30,18 @@ def p_ProgramBlock(p):
         #print(len(p[0].children))
 
 def p_DeclareLines(p):
-    '''DeclareLines : DeclareLines VarDeclaration
+    '''DeclareLines : DeclareLines TkSemicolon VarDeclaration
                     | VarDeclaration'''
     #print("Regla3")
-    if(len(p) == 3):
-        SequenceChild = DecNode("DeclarationLine", "DeclarationLine", p[2])
+    if(len(p) == 4):
+        SequenceChild = DecNode("DeclarationLine", "DeclarationLine", p[3])
         p[1].addChildren([Node('Sequence', 'Sequence', [SequenceChild])])
         p[0] = p[1]
     else:
-        #p[1]contiene una lista de variables declaradas en esa línea
         p[0] = DecNode("DeclarationLine", "DeclarationLine", p[1], True)
 
 def p_VarDeclaration(p):
-    '''VarDeclaration : MultipleTypeDeclaration TkSemicolon
+    '''VarDeclaration : MultipleTypeDeclaration
                       | SingleTypeDeclaration'''
 #| SingleTypeDeclaration
     #print("Regla5")
@@ -59,7 +58,7 @@ def p_MultipleTypeDeclaration(p):
 
 def p_SingleTypeDeclaration(p):
     '''SingleTypeDeclaration : TkId TkComma SingleTypeDeclaration
-                             | TkId TkComma TkId TkTwoPoints IdType TkSemicolon'''
+                             | TkId TkComma TkId TkTwoPoints IdType'''
     if len(p) == 4:
         p[0] = [Node("Ident", p[1])] + p[3]
     else:
