@@ -17,17 +17,13 @@ import sys
 class ASTree:
     def __init__(self):
         self.node_list = []
-        self.simbol_table = Hash_table
+        self.simbol_table = Hash_table()
 
     def setNode(self, Node):
         self.node_list.append(Node)
 
     def setNodeWithSimbol(self, Node, Simbol):
         self.node_list.append(Node)
-        self.setSimbol(Simbol)
-
-    def setSimbol(self, Simbol):
-        ## la idea aquí es insertarlo en la tabla de hash
         self.simbol_table.insert(Simbol)
     
     ## Esta logica todavía le falta mucho jeje
@@ -105,8 +101,8 @@ class Hash_table:
     # Función hash
     def hash_func(self, value):
         key = 0
-        for i in range(0,len(value.value)):
-            key += ord(value.value[i])
+        for i in range(0,len(value.variable)):
+            key += ord(value.variable[i])
         return key % 127
 
     def insert(self, value): # Metodo para ingresar elementos
@@ -115,7 +111,7 @@ class Hash_table:
             self.table[hash] = value
    
     def search(self,value): # Metodo para buscar elementos
-        hash = self.hash_func(value)
+        hash = self.hash_func(self, value)
         if self.table[hash] is None:
             return None
         else:

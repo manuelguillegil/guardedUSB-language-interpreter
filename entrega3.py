@@ -60,7 +60,7 @@ def p_MultipleTypeDeclaration(p):
         ast.setNode(Node("Ident", p[1]))
         p[0] = [Node("Ident", p[1])] + p[3]
     else:
-        ast.setNode(Node("Ident", p[1]))
+        ast.setNodeWithSimbol(Node("Ident", p[1]), Simbol(p[1], 9999999, 99999999))
         p[0] = [Node("Ident", p[1])]
         print(p[3])
 
