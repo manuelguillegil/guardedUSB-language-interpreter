@@ -9,13 +9,13 @@
 #Voy a ver si mañana puedo cambiar eso sin joder todo
 
 from CustomLexer import CustomLexer
-from AST import Node, DecNode, Simbol, ASTree
+from AST import Node, DecNode, Simbol, Simbol_Table
 import ply.yacc as yacc
 import re
 import sys
 import AST
 
-ast = ASTree() 
+simbol_table = Simbol_Table() 
 
 def p_Start(p):
     '''Start : ProgramBlock'''
@@ -27,10 +27,8 @@ def p_ProgramBlock(p):
                     | TkOBlock Instructions TkCBlock'''
     #print("Regla1")
     if len(p) == 6:
-        ast.setNode(Node("ProgramBlock", "Block", [Node("Declare", "Declare", [p[3]])] + p[4]))
         p[0] = Node("ProgramBlock", "Block", [Node("Declare", "Declare", [p[3]])] + p[4])
     else:
-        ast.setNode(Node("ProgramBlock", "Block", p[2]))
         p[0] = Node("ProgramBlock", "Block", p[2])
         #print(len(p[0].children))
 
@@ -57,10 +55,9 @@ def p_MultipleTypeDeclaration(p):
                                | TkId TkTwoPoints IdType'''
     #print("Regla6")
     if (len(p) == 6):
-        ast.setNode(Node("Ident", p[1]))
         p[0] = [Node("Ident", p[1])] + p[3]
     else:
-        ast.setNodeWithSimbol(Node("Ident", p[1]), Simbol(p[1], 9999999, 99999999))
+        simbol_table.setSimbol(Simbol(p[1], None, None))
         p[0] = [Node("Ident", p[1])]
         print(p[3])
 
@@ -68,11 +65,8 @@ def p_SingleTypeDeclaration(p):
     '''SingleTypeDeclaration : TkId TkComma SingleTypeDeclaration
                              | TkId TkComma TkId TkTwoPoints IdType'''
     if len(p) == 4:
-        ast.setNode(Node("Ident", p[1]))
-        p[0] = [ode("Ident", p[1])] + p[3]
+        p[0] = [Node("Ident", p[1])] + p[3]
     else:
-        ast.setNode(Node("Ident", p[1]))
-        ast.setNode(Node("Ident", p[3]))
         p[0] = [Node("Ident", p[1]), Node("Ident", p[3])]
 
 def p_IdType(p):
@@ -97,10 +91,8 @@ def p_InstSequence(p):
                     | TkSemicolon InstructionLine'''
     #print("Regla11")
     if (len(p) == 4):
-        ast.setNode(Node("InstSequence", "Sequence", [p[2],p[3]]))
         p[0] = Node("InstSequence", "Sequence", [p[2],p[3]])
     else:
-        ast.setNode(Node("InstSequence", "Sequence", [p[2]]))
         p[0] = Node("InstSequence", "Sequence", [p[2]])
 
 def p_InstructionLine(p):
@@ -117,16 +109,13 @@ def p_InstructionLine(p):
 def p_Asig(p):
     '''Asig : TkId TkAsig ExpAux'''
     #print("Regla13")
-    ast.setNode(Node("Asig", "Asig", [Node("Ident", p[1]), Node("Exp", "Exp", [p[3]])]))
-    ast.setNode(Node("Ident", p[1]))
-    ast.setNode(Node("Exp", "Exp", [p[3]]))
+    simbol_table.searchValue(p[1], Node("Exp", "Exp", [p[3]]))
     p[0] = Node("Asig", "Asig", [Node("Ident", p[1]), Node("Exp", "Exp", [p[3]])])
 
 def p_IfDo(p):
     '''IfDo : TkIf Body TkFi
             | TkDo Body TkOd'''
     #print("Regla14")
-    ast.setNode(Node(p[1], p[1], [p[2]]))
     p[0] = Node(p[1], p[1], [p[2]])
 
 def p_Printing(p):
@@ -141,21 +130,13 @@ def p_Printing(p):
     #print("Regla15")
     if len(p) == 3:
         if type(p[2]) is str:
-            ast.setNode(Node(p[1], p[1], [Node("String", p[2])]))
             p[0] = Node(p[1], p[1], [Node("String", p[2])])
         else:
-            ast.setNode(Node(p[1], p[1], [Node("Exp", "Exp", [p[2]])]))
             p[0] = Node(p[1], p[1], [Node("Exp", "Exp", [p[2]])])
     else:
         if type(p[2]) is str:
-            ast.setNode(Node(p[1], p[1], [Node("String", p[2]) , Node("Concat", "Concat", [p[4]])]))
-            ast.setNode(Node("String", p[2]))
-            ast.setNode(Node("Concat", "Concat", [p[4]]))
             p[0] = Node(p[1], p[1], [Node("String", p[2]) , Node("Concat", "Concat", [p[4]])])
         else:
-            ast.setNode(Node(p[1], p[1], [Node("Exp", "Exp", [p[2]]) , Node("Concat", "Concat", [p[4]])]))
-            ast.setNode(Node("Exp", "Exp", [p[2]]))
-            ast.setNode(Node("Concat", "Concat", [p[4]]))
             p[0] = Node(p[1], p[1], [Node("Exp", "Exp", [p[2]]) , Node("Concat", "Concat", [p[4]])])
 
 def p_Read(p):
@@ -168,20 +149,12 @@ def p_Concat(p):
                | TkString
                | ExpAux'''
     if len(p) > 3 and not isinstance(p[1], str):
-        ast.setNode(Node("Concat", "Concat", [Node("Exp", "Exp", [p[1]]) , Node("Concat", "Concat", [p[3]])]))
-        ast.setNode(Node("Exp", "Exp", [p[1]]))
-        ast.setNode(Node("Concat", "Concat", [p[3]]))
         p[0] = Node("Concat", "Concat", [Node("Exp", "Exp", [p[1]]) , Node("Concat", "Concat", [p[3]])])
     elif len(p) > 3 and isinstance(p[1], str):
-        ast.setNode(Node("Concat", "Concat", [Node("String", p[1]) , Node("Concat", "Concat", [p[3]])]))
-        ast.setNode(Node("String", p[1]))
-        ast.setNode(Node("Concat", "Concat", [p[3]]))
         p[0] = Node("Concat", "Concat", [Node("String", p[1]) , Node("Concat", "Concat", [p[3]])])
     elif len(p) < 3 and isinstance(p[1], str):
-        ast.setNode(Node("String", p[1]))
         p[0] = Node("String", p[1])
     elif len(p) < 3 and not isinstance(p[1], str):
-        ast.setNode(Node("Exp", "Exp", [p[1]]))
         p[0] = Node("Exp", "Exp", [p[1]])
     else:
         pass
@@ -191,12 +164,8 @@ def p_Body(p):
             | ExpAux TkArrow Instructions'''
     #print("Regla15")
     if len(p) == 5:
-        ast.setNode(Node("Guard", "Guard", [Node("Exp", "Exp", [p[1]])] + p[3] + [p[4]]))
-        ast.setNode(Node("Exp", "Exp", [p[1]]))
         p[0] = Node("Guard", "Guard", [Node("Exp", "Exp", [p[1]])] + p[3] + [p[4]])
     else:
-        ast.setNode(Node("Guard", "Guard", [Node("Exp", "Exp", [p[1]])] + p[3]))
-        ast.setNode(Node("Exp", "Exp", [p[1]]))
         p[0] = Node("Guard", "Guard", [Node("Exp", "Exp", [p[1]])] + p[3])
 
 
@@ -205,25 +174,18 @@ def p_GuardList(p):
                  | TkGuard ExpAux TkArrow Instructions'''
     #print("Regla16")
     if len(p) == 7:
-        ast.setNode(Node("Guard", "Guard", [Node("Exp", "Exp", [p[2]])] + p[4] + [p[5]]))
-        ast.setNode(Node("Exp", "Exp", [p[2]]))
         p[0] = Node("Guard", "Guard", [Node("Exp", "Exp", [p[2]])] + p[4] + [p[5]])
     else:
-        ast.setNode(Node("Guard", "Guard", [Node("Exp", "Exp", [p[2]])] + p[4]))
-        ast.setNode(Node("Exp", "Exp", [p[2]]))
         p[0] = Node("Guard", "Guard", [Node("Exp", "Exp", [p[2]])] + p[4])
 
 
 def p_For(p):
     '''For : TkFor In TkArrow ProgramBlock TkRof'''
     #print("Hey there")
-    ast.setNode(Node("For", "For", [Node("In", "In",  [p[2]]), p[4]]))
-    ast.setNode(Node("In", "In",  [p[2]]))
     p[0] = Node("For", "For", [Node("In", "In",  [p[2]]), p[4]])
 
 def p_In(p):
     '''In : TkId TkIn ExpAux TkTo ExpAux'''
-    ast.setNode(Node("Ident", p[1], [p[3], p[5]]))
     p[0] = Node("Ident", p[1], [p[3], p[5]])
 
 def p_ExpAux(p):
@@ -251,60 +213,42 @@ def p_ExpAux(p):
     if p[1] != '(':
         if len(p) == 4:
             if p[2] == '==':
-                ast.setNode(Node("BinOp", "Equals", [p[1], p[3]]))
                 p[0] = Node("BinOp", "Equals", [p[1], p[3]])
             elif p[2] == '!=':
-                ast.setNode(Node("BinOp", "Nequals", [p[1], p[3]]))
                 p[0] = Node("BinOp", "Nequals", [p[1], p[3]])
             elif p[2] == '!=':
-                ast.setNode(Node("BinOp", "Nequals", [p[1], p[3]]))
                 p[0] = Node("BinOp", "Nequals", [p[1], p[3]])
             elif p[2] == '>=':
-                ast.setNode(Node("BinOp", "Geq", [p[1], p[3]]))
                 p[0] = Node("BinOp", "Geq", [p[1], p[3]])
             elif p[2] == '>':
-                ast.setNode(Node('BinOp', "Greater", [p[1], p[3]]))
                 p[0] = Node('BinOp', "Greater", [p[1], p[3]])
             elif p[2] == '<=':
-                ast.setNode(Node("BinOp", "Leq", [p[1], p[3]]))
                 p[0] = Node("BinOp", "Leq", [p[1], p[3]])
             elif p[2] == '<':
-                ast.setNode(Node('BinOp', "Less", [p[1], p[3]]))
                 p[0] = Node('BinOp', "Less", [p[1], p[3]])
             elif p[2] == '\\/':
-                ast.setNode(Node("BinOp", "Or", [p[1], p[3]]))
                 p[0] = Node("BinOp", "Or", [p[1], p[3]])
             elif p[2] == '/\\':
-                ast.setNode(Node("BinOp", "And", [p[1], p[3]]))
                 p[0] = Node("BinOp", "And", [p[1], p[3]])
             elif p[2] == '+':
-                ast.setNode(Node("BinOp", "Plus", [p[1], p[3]]))
                 p[0] = Node("BinOp", "Plus", [p[1], p[3]])
             elif p[2] == '-':
-                ast.setNode(Node("BinOp", "Minus", [p[1], p[3]]))
                 p[0] = Node("BinOp", "Minus", [p[1], p[3]])
             elif p[2] == '*':
-                ast.setNode(Node("BinOp", "Mult", [p[1], p[3]]))
                 p[0] = Node("BinOp", "Mult", [p[1], p[3]])
             elif p[2] == '/':
-                ast.setNode(Node("BinOp", "Div", [p[1], p[3]]))
                 p[0] = Node("BinOp", "Div", [p[1], p[3]])
             elif p[2] == '%':
-                ast.setNode(Node("BinOp", "Mod", [p[1], p[3]]))
                 p[0] = Node("BinOp", "Mod", [p[1], p[3]])
             elif p[2] == ',':
-                ast.setNode(Node("ArrayOp", "ArrElementInit", [p[1], p[3]]))
                 p[0] = Node("ArrayOp", "ArrElementInit", [p[1], p[3]])
             else:
                 p_error(p[2])
         elif len(p) == 5:
-            ast.setNode(Node("ArrayOp", "ArrConsult", [p[1], p[3]]))
             p[0] = Node("ArrayOp", "ArrConsult", [p[1], p[3]])
         elif len(p) == 7:
-            ast.setNode(Node("ArrayOp", "ArrayAsig", [p[1], p[3], p[5]]))
             p[0] = Node("ArrayOp", "ArrayAsig", [p[1], p[3], p[5]])
         elif len(p) == 3:
-            ast.setNode(Node("UnOp", "Not", [p[2]]))
             p[0] = Node("UnOp", "Not", [p[2]])
         else:
             #print("Last")
@@ -320,7 +264,6 @@ def p_Value(p):
              | Function'''
     #print("Regla18")
     if len(p) == 3:
-        ast.setNode(Node("Value", "UnaryMinus", [p[2]]))
         p[0] = Node("Value", "UnaryMinus", [p[2]])
     else:
         #print(p[1].value)
@@ -333,7 +276,6 @@ def p_Function(p):
                 | TkMin TkOpenPar AbsValue TkClosePar'''
     #print("Regla19")
     #print(p[3].value)
-    ast.setNode(Node("Function", p[1], [p[3]]))
     p[0] = Node("Function", p[1], [p[3]])
 
 def p_AbsValue(p):
@@ -343,14 +285,11 @@ def p_AbsValue(p):
                 | TkFalse'''
     #print("Regla20")
     if type(p[1]) is int:
-        ast.setNode(Node("Literal", p[1]))
         p[0] = Node("Literal", p[1])
     else:
         if p[1] == 'true' or p[1] == 'false':
-            ast.setNode(Node("Literal", p[1]))
             p[0] = Node("Literal", p[1])
         else:
-            ast.setNode(Node("Ident", p[1]))
             p[0] = Node("Ident", p[1])
 
 def p_error(p):

@@ -12,32 +12,44 @@
 
 import sys
 
-## Creamos un objeto que será nuestro arbol que guardará todo los nodos generados en una lista 
-### y tendrá una o las tablas de simbolos correspondientes
-class ASTree:
-    def __init__(self):
-        self.node_list = []
-        self.simbol_table = Hash_table()
+class Simbol:
+    def __init__(self, var, data_type, value):
+        self.var = var
+        self.value = value
+        self.data_type = data_type
 
-    def setNode(self, Node):
-        self.node_list.append(Node)
-
-    def setNodeWithSimbol(self, Node, Simbol):
-        self.node_list.append(Node)
-        self.simbol_table.insert(Simbol)
+    def setVariable(variable):
+        self.variable = variable
     
-    ## Esta logica todavía le falta mucho jeje
-    def updateSimbol(self, Simbol):
-        index = self.simbol_table.search(Simbol)
-        if index is not None:
-            self.remove(Simbol)
-            self.insert(Simbol)
+    def setDataType(data_type):
+        self.data_type = data_type
 
+    def setValue(value):
+        self.value = value
+
+class Simbol_Table:
+    def __init__(self):
+        self.simbol_table = Hash_Table()
+
+    def setSimbol(self, Simbol):
+        self.simbol_table.insert(Simbol)
+
+    def searchValue(self, variable, ChildrenNodeExpresion):
+        index = self.simbol_table.searchByVariable(variable)
+        value = ChildrenNodeExpresion.findValue()
+        print('value: ' + str(value))
+        if value is not None:
+            print('index en la tabla de hash: ' + index + ' y valor que se le asigna: ' + value)
+            ## Hay que ver aquí como buscar el DataType de la variable asociada
+            self.simbol_table.insert(Simbol(variable, None, value))
+            self.simbol_table.remove(Simbol(variable, None, None))
+            self.simbol_table.insert(Simbol(variable, None, value))
 
 class Node:
     def __init__(self, category, value, children=None):
         self.category = category
         self.value = value
+        self.expresionValue = ''
         if children:
             self.children = children
         else:
@@ -55,10 +67,11 @@ class Node:
 
     def findValue(self):
         if (self.category == "Literal" or self.category == "Ident"):
-            return self.value
+            return str(self.value)
         else: 
             for i in range(len(self.children)):
                 self.children[i].findValue()
+                return self.children[i].findValue()
 
     def findDataType(self):
         pass
@@ -79,48 +92,45 @@ class DecNode(Node):
             sequence = len(self.children) - 1 #Ubicación en la lista de hijos donde va el nodo secuenciación
             self.children[sequence].children[0].addChildren(newChildren)
 
-class Simbol:
-    def __init__(self, variable, data_type, value):
-        self.variable = variable
-        self.value = value
-        self.data_type = data_type
-
-    def setVariable(variable):
-        self.variable = variable
-    
-    def setDataType(data_type):
-        self.data_type = data_type
-
-    def setValue(value):
-        self.value = value
-
-class Hash_table:
+class Hash_Table:
     def __init__(self):
         self.table = [None] * 127
     
     # Función hash
     def hash_func(self, value):
         key = 0
-        for i in range(0,len(value.variable)):
-            key += ord(value.variable[i])
+        for i in range(0,len(value.var)):
+            key += ord(value.var[i])
         return key % 127
 
-    def insert(self, value): # Metodo para ingresar elementos
-        hash = self.hash_func(value)
+    def insert(self, Simbol): # Metodo para ingresar elementos
+        hash = self.hash_func(Simbol)
         if self.table[hash] is None:
-            self.table[hash] = value
-   
-    def search(self,value): # Metodo para buscar elementos
+            self.table[hash] = Simbol
+
+    ## Ambos métodos de search solo nos devuelve el index en donde está el elemento. Esto nos sirve al menos para saber que si está
+    ### en la tabla de hash (esto pareciera más un exists que un search)
+    def search(self,value): # Metodo para buscar elementos considerando los tres campos de un símbolo
         hash = self.hash_func(self, value)
         if self.table[hash] is None:
             return None
         else:
             return hex(id(self.table[hash]))
+    
+    def searchByVariable(self,variable): # Metodo para buscar elementos
+        ## No importa saber el tipo de dato y valor en el simbolo al momento de buscar por la variable
+        ### ya que hash_func solo toma en cuenta la variable en un simbolo
+        simbolo = Simbol(variable, None, None)
+        hash = self.hash_func(simbolo)
+        if self.table[hash] is None:
+            return None
+        else:
+            return hex(id(self.table[hash]))
   
-    def remove(self,value): # Metodo para eleminar elementos
+    def remove(self,value): # Metodo para eleminar elementos. Solo basta buscar el index de la tabla de hash considerando la variable del símbolo
         hash = self.hash_func(value)
         if self.table[hash] is None:
-            print("No hay elementos con ese valor", value)
+            print("No hay elementos con ese valor", value.var)
         else:
-            print("Elemento con valor", value, "eliminado")
+            print("Elemento con valor", value.var, "eliminado")
             self.table[hash] is None
