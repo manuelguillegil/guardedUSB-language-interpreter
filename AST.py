@@ -27,21 +27,24 @@ class Simbol:
     def setValue(value):
         self.value = value
 
+    def printSimbol(self):
+        print("Simbolo: VAR: " + str(self.var) + " data_type: " + str(self.data_type) + " value: " + str(self.value))
+
 class Simbol_Table:
     def __init__(self):
         self.simbol_table = Hash_Table()
 
     def setSimbol(self, Simbol):
         self.simbol_table.insert(Simbol)
+        Simbol.printSimbol()
 
-    def searchValue(self, variable, ChildrenNodeExpresion):
+    def setValue(self, variable, ChildrenNodeExpresion):
         index = self.simbol_table.searchByVariable(variable)
         value = ChildrenNodeExpresion.findValue()
         print('value: ' + str(value))
         if value is not None:
             print('index en la tabla de hash: ' + index + ' y valor que se le asigna: ' + value)
             ## Hay que ver aquí como buscar el DataType de la variable asociada
-            self.simbol_table.insert(Simbol(variable, None, value))
             self.simbol_table.remove(Simbol(variable, None, None))
             self.simbol_table.insert(Simbol(variable, None, value))
 

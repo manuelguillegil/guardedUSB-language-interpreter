@@ -57,9 +57,8 @@ def p_MultipleTypeDeclaration(p):
     if (len(p) == 6):
         p[0] = [Node("Ident", p[1])] + p[3]
     else:
-        simbol_table.setSimbol(Simbol(p[1], None, None))
+        simbol_table.setSimbol(Simbol(p[1], p[3], None))
         p[0] = [Node("Ident", p[1])]
-        print(p[3])
 
 def p_SingleTypeDeclaration(p):
     '''SingleTypeDeclaration : TkId TkComma SingleTypeDeclaration
@@ -73,7 +72,7 @@ def p_IdType(p):
     '''IdType : TkInt
               | TkBool
               | TkArray TkOBracket TkNum TkSoForth TkNum TkCBracket'''
-    print(p[1])
+    p[0] = p[1]
     #print("Regla9")
 
 def p_Instructions(p):
@@ -109,7 +108,7 @@ def p_InstructionLine(p):
 def p_Asig(p):
     '''Asig : TkId TkAsig ExpAux'''
     #print("Regla13")
-    simbol_table.searchValue(p[1], Node("Exp", "Exp", [p[3]]))
+    simbol_table.setValue(p[1], Node("Exp", "Exp", [p[3]]))
     p[0] = Node("Asig", "Asig", [Node("Ident", p[1]), Node("Exp", "Exp", [p[3]])])
 
 def p_IfDo(p):
@@ -168,7 +167,6 @@ def p_Body(p):
     else:
         p[0] = Node("Guard", "Guard", [Node("Exp", "Exp", [p[1]])] + p[3])
 
-
 def p_GuardList(p):
     '''GuardList : TkGuard ExpAux TkArrow Instructions GuardList
                  | TkGuard ExpAux TkArrow Instructions'''
@@ -177,7 +175,6 @@ def p_GuardList(p):
         p[0] = Node("Guard", "Guard", [Node("Exp", "Exp", [p[2]])] + p[4] + [p[5]])
     else:
         p[0] = Node("Guard", "Guard", [Node("Exp", "Exp", [p[2]])] + p[4])
-
 
 def p_For(p):
     '''For : TkFor In TkArrow ProgramBlock TkRof'''
