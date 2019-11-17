@@ -41,12 +41,13 @@ class Simbol_Table:
     def setValue(self, variable, ChildrenNodeExpresion):
         index = self.simbol_table.searchByVariable(variable)
         value = ChildrenNodeExpresion.findValue()
-        print('value: ' + str(value))
         if value is not None:
             print('index en la tabla de hash: ' + index + ' y valor que se le asigna: ' + value)
             ## Hay que ver aquí como buscar el DataType de la variable asociada
-            self.simbol_table.remove(Simbol(variable, None, None))
-            self.simbol_table.insert(Simbol(variable, None, value))
+            simbol = self.simbol_table.searchByVariableTheSimbol(variable)
+            self.simbol_table.remove(simbol)
+            self.simbol_table.insert(Simbol(variable, simbol.data_type, value))
+            Simbol(variable, simbol.data_type, value).printSimbol()
 
 class Node:
     def __init__(self, category, value, children=None):
@@ -129,11 +130,20 @@ class Hash_Table:
             return None
         else:
             return hex(id(self.table[hash]))
+
+    def searchByVariableTheSimbol(self,variable): # Metodo para buscar elementos
+        ## No importa saber el tipo de dato y valor en el simbolo al momento de buscar por la variable
+        ### ya que hash_func solo toma en cuenta la variable en un simbolo
+        simbolo = Simbol(variable, None, None)
+        hash = self.hash_func(simbolo)
+        if self.table[hash] is None:
+            return None
+        else:
+            return self.table[hash]
   
     def remove(self,value): # Metodo para eleminar elementos. Solo basta buscar el index de la tabla de hash considerando la variable del símbolo
         hash = self.hash_func(value)
         if self.table[hash] is None:
-            print("No hay elementos con ese valor", value.var)
+            print("No hay elementos con ese valor", str(value.var))
         else:
-            print("Elemento con valor", value.var, "eliminado")
-            self.table[hash] is None
+            self.table[hash] = None
