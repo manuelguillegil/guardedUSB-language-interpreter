@@ -1,5 +1,5 @@
 ##Proyecto Traductores e Interpretadores, CI-3725
-##Entrega 2
+##Entrega 3
 ##Manuel Gil, 14-10397
 ##Diego Peña, 15-11095
 ##Fecha de inicio: 28-09-2019, 21:16 Hora de Venezuela
@@ -12,8 +12,33 @@
 
 import sys
 
-class Node:
+## Creamos un objeto que será nuestro arbol que guardará todo los nodos generados en una lista 
+### y tendrá una o las tablas de simbolos correspondientes
+class ASTree:
+    def __init__(self):
+        self.node_list = []
+        self.simbol_table = Hash_table
 
+    def setNode(self, Node):
+        self.node_list.append(Node)
+
+    def setNodeWithSimbol(self, Node, Simbol):
+        self.node_list.append(Node)
+        self.setSimbol(Simbol)
+
+    def setSimbol(self, Simbol):
+        ## la idea aquí es insertarlo en la tabla de hash
+        self.simbol_table.insert(Simbol)
+    
+    ## Esta logica todavía le falta mucho jeje
+    def updateSimbol(self, Simbol):
+        index = self.simbol_table.search(Simbol)
+        if index is not None:
+            self.remove(Simbol)
+            self.insert(Simbol)
+
+
+class Node:
     def __init__(self, category, value, children=None):
         self.category = category
         self.value = value
@@ -32,6 +57,16 @@ class Node:
         for i in range(len(self.children)):
             self.children[i].printTree(indent + " ")
 
+    def findValue(self):
+        if (self.category == "Literal" or self.category == "Ident"):
+            return self.value
+        else: 
+            for i in range(len(self.children)):
+                self.children[i].findValue()
+
+    def findDataType(self):
+        pass
+
 class DecNode(Node):
     def __init__(self, category, value, children=None, last=None):
         super().__init__(category, value, children)
@@ -48,34 +83,48 @@ class DecNode(Node):
             sequence = len(self.children) - 1 #Ubicación en la lista de hijos donde va el nodo secuenciación
             self.children[sequence].children[0].addChildren(newChildren)
 
-class hash_table:
+class Simbol:
+    def __init__(self, variable, data_type, value):
+        self.variable = variable
+        self.value = value
+        self.data_type = data_type
+
+    def setVariable(variable):
+        self.variable = variable
+    
+    def setDataType(data_type):
+        self.data_type = data_type
+
+    def setValue(value):
+        self.value = value
+
+class Hash_table:
     def __init__(self):
         self.table = [None] * 127
     
     # Función hash
-    def Hash_func(self, value):
+    def hash_func(self, value):
         key = 0
-        for i in range(0,len(value)):
-            key += ord(value[i])
+        for i in range(0,len(value.value)):
+            key += ord(value.value[i])
         return key % 127
 
-    def Insert(self, value): # Metodo para ingresar elementos
-        hash = self.Hash_func(value)
+    def insert(self, value): # Metodo para ingresar elementos
+        hash = self.hash_func(value)
         if self.table[hash] is None:
             self.table[hash] = value
    
-    def Search(self,value): # Metodo para buscar elementos
-        hash = self.Hash_func(value)
+    def search(self,value): # Metodo para buscar elementos
+        hash = self.hash_func(value)
         if self.table[hash] is None:
             return None
         else:
             return hex(id(self.table[hash]))
   
-    def Remove(self,value): # Metodo para eleminar elementos
-        hash = self.Hash_func(value)
+    def remove(self,value): # Metodo para eleminar elementos
+        hash = self.hash_func(value)
         if self.table[hash] is None:
             print("No hay elementos con ese valor", value)
         else:
             print("Elemento con valor", value, "eliminado")
             self.table[hash] is None
-        

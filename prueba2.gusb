@@ -1,6 +1,5 @@
 |[
 	declare 
 	a : int
-	print "hola" || a || b + a || u + e || y + q || "epale" || a;
-	print "epale"
+	a := 2
 ]|
