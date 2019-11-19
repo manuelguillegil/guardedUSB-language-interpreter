@@ -18,10 +18,10 @@ class Simbol:
         # self.value = value
         self.data_type = data_type
 
-    def setVariable(variable):
+    def setVariable(self, variable):
         self.variable = variable
     
-    def setDataType(data_type):
+    def setDataType(self, data_type):
         self.data_type = data_type
 
     # def setValue(value):
@@ -30,13 +30,13 @@ class Simbol:
     def printSimbol(self):
         print("Simbolo: VAR: " + str(self.var) + " data_type: " + str(self.data_type)
 
-class Simbol_Table:
+class Symbol_Table:
     def __init__(self):
-        self.simbol_table = Hash_Table()
+        self.symbol_table = Hash_Table()
 
-    def setSimbol(self, Simbol):
-        self.simbol_table.insert(Simbol)
-        Simbol.printSimbol()
+    def setSymbol(self, Symbol):
+        self.symbol_table.insert(Symbol)
+        Symbol.printSymbol()
 
     # def setValue(self, variable, ChildrenNodeExpresion):
     #     index = self.simbol_table.searchByVariable(variable)
@@ -81,8 +81,9 @@ class Node:
         pass
 
 class DecNode(Node):
-    def __init__(self, category, value, children=None, last=None):
+    def __init__(self, category, value, tupleList, children=None, last=None):
         super().__init__(category, value, children)
+        self.declaredVars = tupleList
         self.lastLine = last
 
     #Esto me permite que cada línea de declaración se vea como hija de la línea anterior
@@ -107,15 +108,15 @@ class Hash_Table:
             key += ord(value.var[i])
         return key % 127
 
-    def insert(self, Simbol): # Metodo para ingresar elementos
-        hash = self.hash_func(Simbol)
+    def insert(self, Symbol): # Metodo para ingresar elementos
+        hash = self.hash_func(Symbol)
         if self.table[hash] is None:
-            self.table[hash] = Simbol
+            self.table[hash] = Symbol
 
     ## Ambos métodos de search solo nos devuelve el index en donde está el elemento. Esto nos sirve al menos para saber que si está
     ### en la tabla de hash (esto pareciera más un exists que un search)
     def search(self,value): # Metodo para buscar elementos considerando los tres campos de un símbolo
-        hash = self.hash_func(self, value)
+        hash = self.hash_func(value)
         if self.table[hash] is None:
             return None
         else:
