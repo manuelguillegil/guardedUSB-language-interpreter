@@ -12,42 +12,42 @@
 
 import sys
 
-class Simbol:
+class Symbol:
     def __init__(self, var, data_type, value):
         self.var = var
         self.value = value
         self.data_type = data_type
 
-    def setVariable(variable):
+    def setVariable(self, variable):
         self.variable = variable
     
-    def setDataType(data_type):
+    def setDataType(self, data_type):
         self.data_type = data_type
 
-    def setValue(value):
+    def setValue(self, value):
         self.value = value
 
-    def printSimbol(self):
+    def printSymbol(self):
         print("Simbolo: VAR: " + str(self.var) + " data_type: " + str(self.data_type) + " value: " + str(self.value))
 
-class Simbol_Table:
+class Symbol_Table:
     def __init__(self):
-        self.simbol_table = Hash_Table()
+        self.symbol_table = Hash_Table()
 
-    def setSimbol(self, Simbol):
-        self.simbol_table.insert(Simbol)
-        Simbol.printSimbol()
+    def setSymbol(self, Symbol):
+        self.symbol_table.insert(Symbol)
+        Symbol.printSymbol()
 
     def setValue(self, variable, ChildrenNodeExpresion):
-        index = self.simbol_table.searchByVariable(variable)
+        index = self.symbol_table.searchByVariable(variable)
         value = ChildrenNodeExpresion.findValue()
         if value is not None:
             print('index en la tabla de hash: ' + index + ' y valor que se le asigna: ' + value)
             ## Hay que ver aquí como buscar el DataType de la variable asociada
-            simbol = self.simbol_table.searchByVariableTheSimbol(variable)
-            self.simbol_table.remove(simbol)
-            self.simbol_table.insert(Simbol(variable, simbol.data_type, value))
-            Simbol(variable, simbol.data_type, value).printSimbol()
+            symbol = self.symbol_table.searchByVariableTheSymbol(variable)
+            self.symbol_table.remove(symbol)
+            self.symbol_table.insert(Symbol(variable, symbol.data_type, value))
+            Symbol(variable, symbol.data_type, value).printSymbol()
 
 class Node:
     def __init__(self, category, value, children=None):
@@ -81,8 +81,9 @@ class Node:
         pass
 
 class DecNode(Node):
-    def __init__(self, category, value, children=None, last=None):
+    def __init__(self, category, value, tupleList, children=None, last=None):
         super().__init__(category, value, children)
+        self.declaredVars = tupleList
         self.lastLine = last
 
     #Esto me permite que cada línea de declaración se vea como hija de la línea anterior
@@ -107,15 +108,15 @@ class Hash_Table:
             key += ord(value.var[i])
         return key % 127
 
-    def insert(self, Simbol): # Metodo para ingresar elementos
-        hash = self.hash_func(Simbol)
+    def insert(self, Symbol): # Metodo para ingresar elementos
+        hash = self.hash_func(Symbol)
         if self.table[hash] is None:
-            self.table[hash] = Simbol
+            self.table[hash] = Symbol
 
     ## Ambos métodos de search solo nos devuelve el index en donde está el elemento. Esto nos sirve al menos para saber que si está
     ### en la tabla de hash (esto pareciera más un exists que un search)
     def search(self,value): # Metodo para buscar elementos considerando los tres campos de un símbolo
-        hash = self.hash_func(self, value)
+        hash = self.hash_func(value)
         if self.table[hash] is None:
             return None
         else:
@@ -124,7 +125,7 @@ class Hash_Table:
     def searchByVariable(self,variable): # Metodo para buscar elementos
         ## No importa saber el tipo de dato y valor en el simbolo al momento de buscar por la variable
         ### ya que hash_func solo toma en cuenta la variable en un simbolo
-        simbolo = Simbol(variable, None, None)
+        simbolo = Symbol(variable, None, None)
         hash = self.hash_func(simbolo)
         if self.table[hash] is None:
             return None
@@ -134,7 +135,7 @@ class Hash_Table:
     def searchByVariableTheSimbol(self,variable): # Metodo para buscar elementos
         ## No importa saber el tipo de dato y valor en el simbolo al momento de buscar por la variable
         ### ya que hash_func solo toma en cuenta la variable en un simbolo
-        simbolo = Simbol(variable, None, None)
+        simbolo = Symbol(variable, None, None)
         hash = self.hash_func(simbolo)
         if self.table[hash] is None:
             return None
