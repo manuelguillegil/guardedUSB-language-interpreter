@@ -55,9 +55,10 @@ def p_MultipleTypeDeclaration(p):
                                | TkId TkTwoPoints IdType'''
     #print("Regla6")
     if (len(p) == 6):
+        
         p[0] = [Node("Ident", p[1])] + p[3]
     else:
-        simbol_table.setSimbol(Simbol(p[1], p[3], None))
+        simbol_table.setSimbol(Simbol(p[1], p[3]))
         p[0] = [Node("Ident", p[1])]
 
 def p_SingleTypeDeclaration(p):
@@ -108,7 +109,7 @@ def p_InstructionLine(p):
 def p_Asig(p):
     '''Asig : TkId TkAsig ExpAux'''
     #print("Regla13")
-    simbol_table.setValue(p[1], Node("Exp", "Exp", [p[3]]))
+    # simbol_table.setValue(p[1], Node("Exp", "Exp", [p[3]]))
     p[0] = Node("Asig", "Asig", [Node("Ident", p[1]), Node("Exp", "Exp", [p[3]])])
 
 def p_IfDo(p):
