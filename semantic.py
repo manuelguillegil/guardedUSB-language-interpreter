@@ -8,16 +8,22 @@
 #Actualización: YA arreglé el detalle de la gramática
 
 from CustomLexer import CustomLexer
-from AST import Node, DecNode
+from AST import Node, DecNode, BlockNode
 import ply.yacc as yacc
 import re
 import sys
 
+#Var info es una tupla que contiene en el primer elemento la lista de nodos que representan las variables declaradas
+# en una determinada línea y la segunda es la lista de tipos que tienen las variables en esa línea 
 def generateTupleList(varInfo):
     tupleList = []
     for i in range(len(varInfo[0])):
-        pass
+        if len(varInfo[1]) == 1:
+            tupleList.append((varInfo[0][i].getValue(), varInfo[1][0]))
+        else:
+            tupleList.append((varInfo[0][i].getValue(), varInfo[1][i]))
 
+    return tupleList
 
 def p_Start(p):
     '''Start : ProgramBlock'''
@@ -29,9 +35,9 @@ def p_ProgramBlock(p):
                     | TkOBlock Instructions TkCBlock'''
     #print("Regla1")
     if len(p) == 6:
-        p[0] = Node("ProgramBlock", "Block", [Node("Declare", "Declare", [p[3]])] + p[4])
+        p[0] = BlockNode("ProgramBlock", "Block", [Node("Declare", "Declare", [p[3]])] + p[4], p[3].getDeclaredVars())
     else:
-        p[0] = Node("ProgramBlock", "Block", p[2])
+        p[0] = BlockNode("ProgramBlock", "Block", p[2])
         #print(len(p[0].children))
 
 def p_DeclareLines(p):
@@ -39,12 +45,14 @@ def p_DeclareLines(p):
                     | VarDeclaration'''
     #print("Regla3")
     if(len(p) == 4):
-        SequenceChild = DecNode("DeclarationLine", "DeclarationLine", p[3])
+        tupleList = generateTupleList(p[3])
+        SequenceChild = DecNode("DeclarationLine", "DeclarationLine", tupleList, p[3][0])
         p[1].addChildren([Node('Sequence', 'Sequence', [SequenceChild])]) #CAmbiar por addChild, así me enrredo menos
+        p[1].addTupleList(SequenceChild.getDeclaredVars())
         p[0] = p[1]
     else:
         tupleList = generateTupleList(p[1])
-        p[0] = DecNode("DeclarationLine", "DeclarationLine", p[1], True)
+        p[0] = DecNode("DeclarationLine", "DeclarationLine", tupleList, p[1][0], True)
 
 def p_VarDeclaration(p):
     '''VarDeclaration : MultipleTypeDeclaration
@@ -58,7 +66,7 @@ def p_MultipleTypeDeclaration(p):
                                | TkId TkTwoPoints IdType'''
     #print("Regla6")
     if (len(p) == 6):
-        p[0] = ([Node("Ident", p[1])] + p[3][0], [p[5]] + p[3][1])
+        p[0] = ([Node("Ident", p[1])] + p[3][0], p[5] + p[3][1])
     else:
         p[0] = ([Node("Ident", p[1])], p[3])
         #El caso bse devuelve una tupla que en el primer término contiene el identificador en una lista
@@ -68,9 +76,9 @@ def p_SingleTypeDeclaration(p):
     '''SingleTypeDeclaration : TkId TkComma SingleTypeDeclaration
                              | TkId TkComma TkId TkTwoPoints IdType'''
     if len(p) == 4:
-        p[0] = [Node("Ident", p[1])] + p[3]
+        p[0] = ([Node("Ident", p[1])] + p[3][0], p[3][1])
     else:
-        p[0] = [Node("Ident", p[1]), Node("Ident", p[3])]
+        p[0] = ([Node("Ident", p[1]), Node("Ident", p[3])], p[5])
 
 def p_IdType(p):
     '''IdType : TkInt
@@ -81,7 +89,7 @@ def p_IdType(p):
     tipo = ""
 
     for i in range(1, len(p)):
-        tipo += p[i]
+        tipo += str(p[i])
     
     p[0] = [tipo]
 
