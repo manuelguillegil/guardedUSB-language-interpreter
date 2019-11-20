@@ -12,6 +12,10 @@ from AST import Node, DecNode, BlockNode
 import ply.yacc as yacc
 import re
 import sys
+from queue import LifoQueue 
+
+stackUncheckBlock = LifoQueue(maxsize = 100)
+stackCheckBlock = LifoQueue(maxsize = 100)
 
 #Var info es una tupla que contiene en el primer elemento la lista de nodos que representan las variables declaradas
 # en una determinada línea y la segunda es la lista de tipos que tienen las variables en esa línea 
@@ -36,8 +40,10 @@ def p_ProgramBlock(p):
     #print("Regla1")
     if len(p) == 6:
         p[0] = BlockNode("ProgramBlock", "Block", [Node("Declare", "Declare", [p[3]])] + p[4], p[3].getDeclaredVars())
+        stackUncheckBlock.put(BlockNode("ProgramBlock", "Block", [Node("Declare", "Declare", [p[3]])] + p[4], p[3].getDeclaredVars()))
     else:
         p[0] = BlockNode("ProgramBlock", "Block", p[2])
+        stackUncheckBlock.put(BlockNode("ProgramBlock", "Block", p[2]))
         #print(len(p[0].children))
 
 def p_DeclareLines(p):
