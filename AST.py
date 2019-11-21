@@ -59,46 +59,90 @@ class Node:
         for i in range(len(self.children)):
             self.children[i].printTree(indent + " ")
 
-    def checkStaticErrors(self):
-        tableStack = []
-        return self.checkStaticErrorsAux(tableStack)
-
     def searchTables(self, symbolTableStack):
         for i in range(len(symbolTableStack)):
             value = symbolTableStack[i].getValue(self.value)
             if value is not None:
                 return value
         return value
+
+    # def checkArrayConsult(self, stack):
+    #     if self.children[0].category == "Ident":
+    #         var = self.children[0].searchTables(stack)
+    #         if var is not None:
+    #             arrInfo = var.split("[")
+    #             if arrInfo[0] == "array":
+
+    # def checkFunction(self, stack):
+    #     if self.children[0].category == "Ident":
+    #         var = self.children[0].searchTables(stack)
+    #         if var is not None:
+    #             arrInfo = var.split("[")
+    #             if arrInfo[0] == "array":
+    #                 if self.value == "atoi":
+    #                     arrSize = arrInfo[1].split("..")
+    #                     arrSize[1] = arrSize[1].split("]")[0]
+    #                     if (int(arrSize[1]) - int(arrSize[0]) + 1) == 1:
+    #                         return True
+    #                     else:
+    #                         print("El arreglo " + self.children[0].getValue() + " tiene más de un elemento\
+    #                             la función atoi() no se puede invocar")
+    #                         sys.exit()
+    #                 else:
+    #                     return True
+    #             else:
+    #                 print("La variable " + self.children[0].getValue() + " no representa un arreglo. La función\
+    #                     utilizada no es aplicable")
+    #                 sys.exit()
+    #         else:
+    #             print("Error: Variable " + self.children[0].value + " no declarada")
+    #             sys.exit()
+    #     else:
+
+
     
-    def checkStaticErrorsAux(self, stack):
+    # def checkArithmeticExp(self, stack):
+    #     if self.category == "AritOp":
+    #         return self.children[0].checkArithmeticExp(stack) and self.children[1].checkArithmeticExp(stack)
+    #     elif self.category == "UnaryMinus":
+    #         return self.children[0].checkArithmeticExp(stack)
+    #     elif self.category == "Function":
+    #         return self.checkFunction(stack)
+    #     elif self.category == "ArrayOp" and self.value == "ArrayConsult":
+    #         return self.checkArrayConsult(stack)
 
-        if isinstance(self, BlockNode):
-            if not bool(self.symbol_table.getTable()): #Si el bloque tiene variables declaradas
-                stack.insert(0, self.symbol_table)  #Insertamos la nueva tabla de símbolos
-                if (len(self.children) == 2): #Si hay solo una instrucción
-                    return self.children[1].checkStaticErrorsAux(stack)
-                else:
-                    stackLength = len(stack) #Si hay una secuencia de instrucciones debemos guardar el tamaño del
-                                             #stack ya que este puede variar dentro de la siguiente instrucción
-                    child1 = self.children[1].checkStaticErrorsAux(stack)
-                    while len(stack) != stackLength: #Si el stack vario lo devolvemos alestado en que estaba originalmente
-                        stack.pop(0)
-                    child2 = self.children[2].checkStaticErrorsAux(stack)
+    # def checkStaticErrors(self):
+    #     tableStack = []
+    #     return self.checkStaticErrorsAux(tableStack)
 
-                    return child1 and child2
-            else:
-                return self.children[0].checkStaticErrorsAux()
-        elif self.category == "Asig":
-            tipo = self.children[0].searchTables(stack)
-            if tipo is not None:
-                if tipo == "int":
-                    return self.children[1].checkArithmeticExp(stack)
-                elif tipo == "bool":
-                    return self.children[1].checkBoolExp(stack)
-                else:
-                    return self.children[1].checkArrayExp(stack)
-            else:
-                print("Error: Variable " + self.children[0].value + " no declarada")
+    # def checkStaticErrorsAux(self, stack):
+    #     if isinstance(self, BlockNode):
+    #         if not bool(self.symbol_table.getTable()): #Si el bloque tiene variables declaradas
+    #             stack.insert(0, self.symbol_table)  #Insertamos la nueva tabla de símbolos
+    #             if (len(self.children) == 2): #Si hay solo una instrucción
+    #                 return self.children[1].checkStaticErrorsAux(stack)
+    #             else:
+    #                 stackLength = len(stack) #Si hay una secuencia de instrucciones debemos guardar el tamaño del
+    #                                          #stack ya que este puede variar dentro de la siguiente instrucción
+    #                 child1 = self.children[1].checkStaticErrorsAux(stack)
+    #                 while len(stack) != stackLength: #Si el stack vario lo devolvemos alestado en que estaba originalmente
+    #                     stack.pop(0)
+    #                 child2 = self.children[2].checkStaticErrorsAux(stack)
+
+    #                 return child1 and child2
+    #         else:
+    #             return self.children[0].checkStaticErrorsAux()
+    #     elif self.category == "Asig":
+    #         tipo = self.children[0].searchTables(stack)
+    #         if tipo is not None:
+    #             if tipo == "int":
+    #                 return self.children[1].checkArithmeticExp(stack)
+    #             elif tipo == "bool":
+    #                 return self.children[1].checkBoolExp(stack)
+    #             else:
+    #                 return self.children[1].checkArrayExp(stack)
+    #         else:
+    #             print("Error: Variable " + self.children[0].value + " no declarada")
 
     def getValue(self):
         return self.value

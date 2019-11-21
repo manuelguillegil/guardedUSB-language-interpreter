@@ -206,7 +206,8 @@ def p_In(p):
     p[0] = Node("Ident", p[1], [p[3], p[5]])
 
 def p_ExpAux(p):
-    '''ExpAux  : ExpAux TkEqual ExpAux
+    '''ExpAux  : ExpAux TkOpenPar ExpAux TkTwoPoints ExpAux TkClosePar
+               | ExpAux TkEqual ExpAux
                | ExpAux TkNequal ExpAux
                | ExpAux TkGeq ExpAux
                | ExpAux TkGreater ExpAux
@@ -221,8 +222,12 @@ def p_ExpAux(p):
                | ExpAux TkMod ExpAux
                | TkOpenPar ExpAux TkClosePar
                | ExpAux TkComma ExpAux
+               | TkMinus TkOpenPar ExpAux TkClosePar
                | ExpAux TkOBracket ExpAux TkCBracket
-               | ExpAux TkOpenPar ExpAux TkTwoPoints ExpAux TkClosePar
+               | TkAtoi TkOpenPar ExpAux TkClosePar
+               | TkSize TkOpenPar ExpAux TkClosePar
+               | TkMax TkOpenPar ExpAux TkClosePar
+               | TkMin TkOpenPar ExpAux TkClosePar
                | TkNot ExpAux
                | Value'''
     #print("Regla17")
@@ -248,13 +253,13 @@ def p_ExpAux(p):
             elif p[2] == '/\\':
                 p[0] = Node("BinOp", "And", [p[1], p[3]])
             elif p[2] == '+':
-                p[0] = Node("BinOp", "Plus", [p[1], p[3]])
+                p[0] = Node("AritOp", "Plus", [p[1], p[3]])
             elif p[2] == '-':
-                p[0] = Node("BinOp", "Minus", [p[1], p[3]])
+                p[0] = Node("AritOp", "Minus", [p[1], p[3]])
             elif p[2] == '*':
-                p[0] = Node("BinOp", "Mult", [p[1], p[3]])
+                p[0] = Node("AritOp", "Mult", [p[1], p[3]])
             elif p[2] == '/':
-                p[0] = Node("BinOp", "Div", [p[1], p[3]])
+                p[0] = Node("AritOp", "Div", [p[1], p[3]])
             elif p[2] == '%':
                 p[0] = Node("BinOp", "Mod", [p[1], p[3]])
             elif p[2] == ',':
@@ -262,7 +267,13 @@ def p_ExpAux(p):
             else:
                 p_error(p[2])
         elif len(p) == 5:
-            p[0] = Node("ArrayOp", "ArrConsult", [p[1], p[3]])
+            if p[2] == '[':
+                p[0] = Node("ArrayOp", "ArrConsult", [p[1], Node("Exp", "Exp", [p[3]])])
+            else:
+                if p[1] == '-':
+                    p[0] = Node("UnaryMinus", "UnaryMinus", [p[3]])
+                else:
+                    p[0] = Node("Function", p[1], [p[3]])
         elif len(p) == 7:
             p[0] = Node("ArrayOp", "ArrayAsig", [p[1], p[3], p[5]])
         elif len(p) == 3:
@@ -275,25 +286,14 @@ def p_ExpAux(p):
 
 
 def p_Value(p):
-    '''Value : TkMinus AbsValue
-             | TkMinus Function
-             | AbsValue
-             | Function'''
+    '''Value : TkMinus AbsValue 
+             | AbsValue'''
     #print("Regla18")
     if len(p) == 3:
-        p[0] = Node("Value", "UnaryMinus", [p[2]])
+        p[0] = Node("UnaryMinus", "UnaryMinus", [p[2]])
     else:
         #print(p[1].value)
         p[0] = p[1]
-
-def p_Function(p):
-    '''Function : TkAtoi TkOpenPar AbsValue TkClosePar
-                | TkSize TkOpenPar AbsValue TkClosePar
-                | TkMax TkOpenPar AbsValue TkClosePar
-                | TkMin TkOpenPar AbsValue TkClosePar'''
-    #print("Regla19")
-    #print(p[3].value)
-    p[0] = Node("Function", p[1], [p[3]])
 
 def p_AbsValue(p):
     '''AbsValue : TkNum
