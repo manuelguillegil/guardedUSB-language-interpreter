@@ -72,18 +72,29 @@ class Node:
             if var is not None:
                 arrInfo = var.split("[")
                 if arrInfo[0] == "array":
+                    return self.children[1].checkArithmeticExp(stack)
+                else:
+                    print("Error: La variable " + self.children[0].value + " es de tipo " + arrInfo[0]\
+                        + ". Las consultas solo están permitidas sobre los elementos de tipo array")
+            else:
+                print("Error: Variable " + self.children[0].value + " no declarada")
+        elif self.children[0].category == "ArrayOp" and self.children[0].value == "ArrayAsig":
+            self.children[0].checkFunction(stack)
+        else:
+            print("Error: No estoy muy claro que representaría este error")
 
-    def checkFunction(self, stack):
+    #Verificación de que el parámetro que se le pasa a la función sea un arreglo
+    def checkFunction(self, stack, function):
         if self.children[0].category == "Ident":
             var = self.children[0].searchTables(stack)
             if var is not None:
                 arrInfo = var.split("[")
                 if arrInfo[0] == "array":
-                    if self.value == "atoi":
+                    if function == "atoi":
                         arrSize = arrInfo[1].split("..")
                         arrSize[1] = arrSize[1].split("]")[0]
                         if (int(arrSize[1]) - int(arrSize[0]) + 1) == 1:
-                            return True
+                            self.children[0]
                         else:
                             print("El arreglo " + self.children[0].getValue() + " tiene más de un elemento\
                                 la función atoi() no se puede invocar")
@@ -97,17 +108,19 @@ class Node:
             else:
                 print("Error: Variable " + self.children[0].value + " no declarada")
                 sys.exit()
+        elif self.children[0].category == "ArrayOp" and self.children[0].value == "ArrayAsig":
+            self.children[0].checkFunction(stack, function)
         else:
+            print("Error: El parámetro de la función no es del tipo soportado por la misma (array)")
 
-
-    
+    #NO ESTÁ COMPLETA FALTA CASO BASE
     def checkArithmeticExp(self, stack):
         if self.category == "AritOp":
             return self.children[0].checkArithmeticExp(stack) and self.children[1].checkArithmeticExp(stack)
         elif self.category == "UnaryMinus":
             return self.children[0].checkArithmeticExp(stack)
         elif self.category == "Function":
-            return self.checkFunction(stack)
+            return self.checkFunction(stack, self.value)
         elif self.category == "ArrayOp" and self.value == "ArrayConsult":
             return self.checkArrayConsult(stack)
 
@@ -125,7 +138,7 @@ class Node:
                     stackLength = len(stack) #Si hay una secuencia de instrucciones debemos guardar el tamaño del
                                              #stack ya que este puede variar dentro de la siguiente instrucción
                     child1 = self.children[1].checkStaticErrorsAux(stack)
-                    while len(stack) != stackLength: #Si el stack vario lo devolvemos alestado en que estaba originalmente
+                    while len(stack) != stackLength: #Si el stack varió lo devolvemos alestado en que estaba originalmente
                         stack.pop(0)
                     child2 = self.children[2].checkStaticErrorsAux(stack)
 
