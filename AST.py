@@ -17,12 +17,18 @@ class Symbol_Table:
         self.table ={}
 
     def fillTable(self, varList):
-        for i in range(len(varList)):
-            if self.table.get(varList[i][0]) is None:
-                self.table[varList[i][0]] = varList[i][1]
-            else:
-                print("La variable " + varList[i][0] + " ha sido declarada dos veces en el mismo bloque")
-                sys.exit()
+        if varList is not None:
+            for i in range(len(varList)):
+                if self.table.get(varList[i][0]) is None:
+                    self.table[varList[i][0]] = varList[i][1]
+                else:
+                    print("La variable " + varList[i][0] + " ha sido declarada dos veces en el mismo bloque")
+                    sys.exit()
+
+    ## Falta comprobar que esta variable no se encuentre en otros ForNode's que envuelvan a este For
+    def fillTableFor(self, var):
+        if var is not None:
+            self.table[var] = var
 
     def printSymbolTable(self, indent):
         print(indent + "Symbol table")
@@ -65,6 +71,13 @@ class Node:
             if value is not None:
                 return value
         return value
+
+    def searchForTables(self, symbolForTableStack):
+        for i in range(len(symbolForTableStack)):
+            value = symbolForTableStack[i].getValue(self.value)
+            if value is not None:
+                return False
+        return True
 
     def checkArrayConsult(self, stack):
         if self.children[0].category == "Ident":
@@ -126,36 +139,42 @@ class Node:
 
     def checkStaticErrors(self):
         tableStack = []
-        return self.checkStaticErrorsAux(tableStack)
+        forTableStack = []
+        return self.checkStaticErrorsAux(tableStack, forTableStack)
 
-    def checkStaticErrorsAux(self, stack):
+    def checkStaticErrorsAux(self, stack, forTableStack):
         if isinstance(self, BlockNode):
             if not bool(self.symbol_table.getTable()): #Si el bloque tiene variables declaradas
                 stack.insert(0, self.symbol_table)  #Insertamos la nueva tabla de símbolos
                 if (len(self.children) == 2): #Si hay solo una instrucción
-                    return self.children[1].checkStaticErrorsAux(stack)
+                    return self.children[1].checkStaticErrorsAux(stack, forTableStack)
                 else:
                     stackLength = len(stack) #Si hay una secuencia de instrucciones debemos guardar el tamaño del
                                              #stack ya que este puede variar dentro de la siguiente instrucción
-                    child1 = self.children[1].checkStaticErrorsAux(stack)
-                    while len(stack) != stackLength: #Si el stack varió lo devolvemos alestado en que estaba originalmente
+                    child1 = self.children[1].checkStaticErrorsAux(stack, forTableStack)
+                    while len(stack) != stackLength: #Si el stack varió lo devolvemos al estado en que estaba originalmente
                         stack.pop(0)
-                    child2 = self.children[2].checkStaticErrorsAux(stack)
+                    child2 = self.children[2].checkStaticErrorsAux(stack, forTableStack)
 
                     return child1 and child2
             else:
                 return self.children[0].checkStaticErrorsAux()
+        elif isinstance(self, ForNode):
+            forTableStack.insert(0, self.symbol_table)  #Insertamos la nueva tabla de símbolos
         elif self.category == "Asig":
-            tipo = self.children[0].searchTables(stack)
-            if tipo is not None:
-                if tipo == "int":
-                    return self.children[1].checkArithmeticExp(stack)
-                elif tipo == "bool":
-                    return self.children[1].checkBoolExp(stack)
+            if self.children[0].searchForTables(forTableStack): #Verificamos si la variable está dentro de la tabla de For
+                tipo = self.children[0].searchTables(stack)
+                if tipo is not None:
+                    if tipo == "int":
+                        return self.children[1].checkArithmeticExp(stack)
+                    elif tipo == "bool":
+                        return self.children[1].checkBoolExp(stack)
+                    else:
+                        return self.children[1].checkArrayExp(stack)
                 else:
-                    return self.children[1].checkArrayExp(stack)
+                    print("Error: Variable " + self.children[0].value + " no declarada")
             else:
-                print("Error: Variable " + self.children[0].value + " no declarada")
+                print("Se está cambiando el valor de una variable iterable del for: " + self.children[0].value)
 
     def getValue(self):
         return self.value
@@ -184,6 +203,13 @@ class DecNode(Node):
     #usar esta lista para crear la tabla de símbolos correspondiente a todas las declaraciones
     def addTupleList(self, newTuples):
         self.declaredVars += newTuples
+
+class ForNode(Node):
+    
+    def __init__(self, category, value, children=None, var=None):
+        super().__init__(category, value, children)
+        self.symbol_table = Symbol_Table()
+        self.symbol_table.fillTableFor(var)
 
 class BlockNode(Node):
     

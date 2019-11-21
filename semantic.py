@@ -8,7 +8,7 @@
 #Actualización: YA arreglé el detalle de la gramática
 
 from CustomLexer import CustomLexer
-from AST import Node, DecNode, BlockNode
+from AST import Node, DecNode, BlockNode, ForNode
 import ply.yacc as yacc
 import re
 import sys
@@ -203,7 +203,7 @@ def p_For(p):
 
 def p_In(p):
     '''In : TkId TkIn ExpAux TkTo ExpAux'''
-    p[0] = Node("Ident", p[1], [p[3], p[5]])
+    p[0] = ForNode("Ident", p[1], [p[3], p[5]], p[1])
 
 def p_ExpAux(p):
     '''ExpAux  : ExpAux TkOpenPar ExpAux TkTwoPoints ExpAux TkClosePar
