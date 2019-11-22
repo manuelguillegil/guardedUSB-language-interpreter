@@ -175,6 +175,18 @@ class Node:
                     print("Error: Variable " + self.children[0].value + " no declarada")
             else:
                 print("Se está cambiando el valor de una variable iterable del for: " + self.children[0].value)
+        ## Chequeamos que el body y la lista de guardias del if la expresión sea booleana
+        elif self.category == "Body" or self.category == "GuardList":
+                if self.children[1].checkBoolExp(stack): ## Si la expresión corresponde con un bool, entonces seguimos
+                    if (len(self.children) > 2):  ### y seguimos chequeando los StaticErrors de las instrucciones y guardias
+                        child1 = self.children[2].checkStaticErrorsAux(stack, forTableStack) ## Chequeamos errores staticos de las instrucciones
+                        child2 = self.children[3].checkStaticErrorsAux(stack, forTableStack) ## Ahora para las demás guardias
+                        return child1 and child2
+                    else: 
+                        return self.children[2].checkStaticErrorsAux(stack, forTableStack) ## No hay más guardias, así que solo chequeamos las instrucciones
+                else:
+                    print("Error: La expresión " + self.children[1].value + " no es de tipo bool para una guardia del If")
+
 
     def getValue(self):
         return self.value
