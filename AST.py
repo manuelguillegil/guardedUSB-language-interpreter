@@ -223,6 +223,28 @@ class Node:
             print("Se está cambiando el valor de una variable iterable del for: " + self.children[0].value)
             sys.exit()
 
+    #Verifica que una expresión sea de tipo bool
+    def checkBoolExp(self, stack, forStack):
+        if self.category == "BinOp" and (self.value == "Equals" or self.value == "Nequals"):
+            return (self.children[0].checkBoolExp(stack, forStack) and self.children[1].checkBoolExp(stack, forStack)) or (self.children[0].checkArithmeticExp(stack, forStack) and self.children[1].checkArithmeticExp(stack, forStack))
+        elif self.category == "RelOp":
+            return self.children[0].checkArithmeticExp(stack, forStack) and self.children[1].checkArithmeticExp(stack, forStack)
+        elif self.category == "BoolOp" and self.value != "Not":
+            return (self.children[0].checkBoolExp(stack, forStack) and self.children[1].checkBoolExp(stack, forStack)) or (self.children[0].checkArithmeticExp(stack, forStack) and self.children[1].checkArithmeticExp(stack, forStack))
+        elif self.category == "BoolOp" and self.value == "Not":
+            return self.children[0].checkBoolExp(stack, forStack) or self.children[0].checkArithmeticExp(stack, forStack)
+        elif self.category == "Ident":
+            return self.checkIdent("bool", stack, forStack)
+        elif self.category == "Literal":
+            if self.getValue() == "true" or self.value == "false":
+                return True
+            else:
+                print("El literal " + self.getValue() + " no es de tipo bool")
+                sys.exit()
+        else:
+            print("El operador " + self.value + " no es válido en esta expresión")
+            sys.exit()
+
 
     #Verifica que una expresión sea de tipo aritmética
     def checkArithmeticExp(self, stack, forStack):
@@ -230,6 +252,8 @@ class Node:
             return self.children[0].checkArithmeticExp(stack, forStack) and self.children[1].checkArithmeticExp(stack, forStack)
         elif self.category == "UnaryMinus":
             return self.children[0].checkArithmeticExp(stack, forStack)
+        elif self.category == "BinOp" and self.value == "Mod":
+            return (self.children[0].checkArithmeticExp(stack, forStack) and self.children[1].checkArithmeticExp(stack, forStack))
         elif self.category == "Function":
             return self.checkFunction(stack, forStack, self.value)
         elif self.category == "ArrayOp" and self.value == "ArrayConsult":
