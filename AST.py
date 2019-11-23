@@ -23,7 +23,7 @@ class ArrayInfo:
         self.tipo = "array"
         self.li = info.split("..")[0]
         self.ls = info.split("..")[1].split("]")[0]
-        self.length = self.ls - self.li + 1
+    #    self.length = self.ls - self.li + 1
 
     def completeInfo(self):
         return self.tipo + "[" + self.li + ".." + self.ls + "]"
@@ -320,8 +320,8 @@ class Node:
     def checkStaticErrorsAux(self, stack, forStack):
         if isinstance(self, BlockNode):
             return self.checkBlock(stack, forStack)
-        elif isinstance(self, ForNode):
-            forStack.insert(0, self.symbol_table)  #Insertamos la nueva tabla de símbolos
+        elif self.category == "For":
+            forStack.insert(0, self.children[0].children[0].symbol_table)  #Insertamos la nueva tabla de símbolos
         elif self.category == "Asig":
             return self.checkAsig(stack, forStack)
         ## Chequeamos que el body y la lista de guardias del if la expresión sea booleana
