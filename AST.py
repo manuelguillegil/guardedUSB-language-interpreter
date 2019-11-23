@@ -66,7 +66,10 @@ class Symbol_Table:
                 print(infoIndent + "variable: " + key + " | type: " +  value)
 
     def getValue(self, key):
-        return self.table[key]
+        try:
+            return self.table[key]
+        except:
+            return None
 
     def getTable(self):
         return self.table
