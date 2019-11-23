@@ -79,111 +79,153 @@ class Node:
                 return False
         return True
 
-    def checkArrayConsult(self, stack):
+    #Verifica si un identificador es de un tipo determinado
+    def checkIdent(self, tipo, stack, forStack):
+        if self.children[0].searchForTables(forStack):
+            varTipo = self.children[0].searchTables(stack)
+            if varTipo == tipo:
+                return True
+            else:
+                if varTipo:
+                    print("La variable " + self.children[0].value + " es de tipo " + varTipo\
+                        + " pero debe ser de tipo " + tipo)
+                    sys.exit()
+                else:
+                    print("Error: Variable " + self.children[0].value + " no declarada")
+                    sys.exit()
+        else:
+            print("Se está cambiando el valor de una variable iterable del for: " + self.children[0].value)
+            sys.exit()  
+
+    #Primero verifica si el arreglo incluye asignaciones. Si las incluye, llama a checkArrayAsig, caso contrario, 
+    #devuelve true. Se supone que el identificado del arreglo  fue buscado en la tabla antes de llamar a esta función
+    def checkArray(self, stack, forStack):
+        if len(self.children) == 1:
+            return True
+        else:
+            return self.checkArrayAsig(stack, forStack)          
+
+    #Verifica si las operaciones dentro de la asignación de arreglos son válidas
+    def checkArrayAsig(self, stack, forStack):
+        return self.children[1].checkArithmeticExp(stack, forStack) and self.children[2].checkArithmeticExp(stack, forStack)
+
+    #Verifica si la operación de consulta de arreglos es válida
+    def checkArrayConsult(self, stack, forStack):
         if self.children[0].category == "Ident":
             var = self.children[0].searchTables(stack)
             if var is not None:
                 arrInfo = var.split("[")
                 if arrInfo[0] == "array":
-                    return self.children[1].checkArithmeticExp(stack)
+                    return self.children[1].checkArithmeticExp(stack, forStack)
                 else:
                     print("Error: La variable " + self.children[0].value + " es de tipo " + arrInfo[0]\
                         + ". Las consultas solo están permitidas sobre los elementos de tipo array")
+                    sys.exit()
             else:
                 print("Error: Variable " + self.children[0].value + " no declarada")
         elif self.children[0].category == "ArrayOp" and self.children[0].value == "ArrayAsig":
-            self.children[0].checkFunction(stack)
+            if self.checkArrayAsig(stack, forStack):
+                return self.children[0].checkArrayConsult(stack, forStack)
         else:
             print("Error: No estoy muy claro que representaría este error")
 
-    #Verificación de que el parámetro que se le pasa a la función sea un arreglo
-    def checkFunction(self, stack, function):
+
+    #Verificación de que el parámetro que se le pasa a la función sea un arreglo que cumpla con las condiciones dadas
+    #por la especificación del lenguaje
+    def checkFunction(self, stack, forStack, function):
         if self.children[0].category == "Ident":
-            var = self.children[0].searchTables(stack)
-            if var is not None:
-                arrInfo = var.split("[")
-                if arrInfo[0] == "array":
-                    if function == "atoi":
+            var = self.children[0].searchTables(stack) #Verificamos que la variable esté en la tabla se símbolos
+            if var is not None: #Si está 
+                arrInfo = var.split("[") 
+                if arrInfo[0] == "array": #Verifico el tipo
+                    if function == "atoi": #La función atoi requiere verificación adicional del tamaño del arreglo
                         arrSize = arrInfo[1].split("..")
                         arrSize[1] = arrSize[1].split("]")[0]
-                        if (int(arrSize[1]) - int(arrSize[0]) + 1) == 1:
-                            self.children[0]
+                        if (int(arrSize[1]) - int(arrSize[0]) + 1) == 1: #si el tamaño es 1
+                            self.checkArray(stack, forStack)
                         else:
                             print("El arreglo " + self.children[0].getValue() + " tiene más de un elemento\
                                 la función atoi() no se puede invocar")
                             sys.exit()
-                    else:
-                        return True
+                    else: #Las demás no rquieren verificación adicional
+                        self.checkArray(stack, forStack)
                 else:
                     print("La variable " + self.children[0].getValue() + " no representa un arreglo. La función\
                         utilizada no es aplicable")
                     sys.exit()
-            else:
+            else: #La variable no está en la tabla
                 print("Error: Variable " + self.children[0].value + " no declarada")
                 sys.exit()
-        elif self.children[0].category == "ArrayOp" and self.children[0].value == "ArrayAsig":
-            self.children[0].checkFunction(stack, function)
+        elif self.children[0].category == "ArrayOp" and self.children[0].value == "ArrayAsig": #si el arreglo estpa modificado
+            if self.checkArrayAsig(stack, forStack):
+                return self.children[0].checkFunction(stack, function)
         else:
             print("Error: El parámetro de la función no es del tipo soportado por la misma (array)")
+            sys.exit()
 
-    #NO ESTÁ COMPLETA FALTA CASO BASE
-    def checkArithmeticExp(self, stack):
+    #Verifica el tipo de expresión se corresponda con el tipo de la variable 
+    def checkAsig(self, stack, forStack):
+        if self.children[0].searchForTables(forStack): #Verificamos si la variable está dentro de la tabla de For
+            tipo = self.children[0].searchTables(stack)
+            if tipo is not None:
+                if tipo == "int":
+                    return self.children[1].checkArithmeticExp(stack, forStack)
+                elif tipo == "bool":
+                    return self.children[1].checkBoolExp(stack)
+                else:
+                    return self.children[1].checkArrayExp(stack)
+            else:
+                print("Error: Variable " + self.children[0].value + " no declarada")
+        else:
+            print("Se está cambiando el valor de una variable iterable del for: " + self.children[0].value)
+
+
+    #Verifica que una expresión sea de tipo aritmética
+    def checkArithmeticExp(self, stack, forStack):
         if self.category == "AritOp":
-            return self.children[0].checkArithmeticExp(stack) and self.children[1].checkArithmeticExp(stack)
+            return self.children[0].checkArithmeticExp(stack, forStack) and self.children[1].checkArithmeticExp(stack, forStack)
         elif self.category == "UnaryMinus":
-            return self.children[0].checkArithmeticExp(stack)
+            return self.children[0].checkArithmeticExp(stack, forStack)
         elif self.category == "Function":
-            return self.checkFunction(stack, self.value)
+            return self.checkFunction(stack, forStack, self.value)
         elif self.category == "ArrayOp" and self.value == "ArrayConsult":
-            return self.checkArrayConsult(stack)
+            return self.checkArrayConsult(stack, forStack)
+        elif self.category == "Ident":
+            return self.checkIdent("int", stack, forStack)
+        elif self.category == "Literal":
+            if self.getValue() != "true" or self.value != "false":
+                return True
+            else:
+                print("El literal " + self.getValue() + " no es de tipo int")
+                sys.exit()
+        else:
+            print("El operador " + self.value + " no es válido en esta expresión")
+            sys.exit()
 
+    #Inicial el procedimiento de análisis semántico del AST
     def checkStaticErrors(self):
         tableStack = []
         forTableStack = []
         return self.checkStaticErrorsAux(tableStack, forTableStack)
 
-    def checkStaticErrorsAux(self, stack, forTableStack):
+    #Esta función verifica los distintos tipos de nodos que tiene el árbol y verifica que todo tenga sentido desde el
+    #punto de vista semántico
+    def checkStaticErrorsAux(self, stack, forStack):
         if isinstance(self, BlockNode):
-            if not bool(self.symbol_table.getTable()): #Si el bloque tiene variables declaradas
-                stack.insert(0, self.symbol_table)  #Insertamos la nueva tabla de símbolos
-                if (len(self.children) == 2): #Si hay solo una instrucción
-                    return self.children[1].checkStaticErrorsAux(stack, forTableStack)
-                else:
-                    stackLength = len(stack) #Si hay una secuencia de instrucciones debemos guardar el tamaño del
-                                             #stack ya que este puede variar dentro de la siguiente instrucción
-                    child1 = self.children[1].checkStaticErrorsAux(stack, forTableStack)
-                    while len(stack) != stackLength: #Si el stack varió lo devolvemos al estado en que estaba originalmente
-                        stack.pop(0)
-                    child2 = self.children[2].checkStaticErrorsAux(stack, forTableStack)
-
-                    return child1 and child2
-            else:
-                return self.children[0].checkStaticErrorsAux()
+            self.checkBlock(stack, forStack)
         elif isinstance(self, ForNode):
-            forTableStack.insert(0, self.symbol_table)  #Insertamos la nueva tabla de símbolos
+            forStack.insert(0, self.symbol_table)  #Insertamos la nueva tabla de símbolos
         elif self.category == "Asig":
-            if self.children[0].searchForTables(forTableStack): #Verificamos si la variable está dentro de la tabla de For
-                tipo = self.children[0].searchTables(stack)
-                if tipo is not None:
-                    if tipo == "int":
-                        return self.children[1].checkArithmeticExp(stack)
-                    elif tipo == "bool":
-                        return self.children[1].checkBoolExp(stack)
-                    else:
-                        return self.children[1].checkArrayExp(stack)
-                else:
-                    print("Error: Variable " + self.children[0].value + " no declarada")
-            else:
-                print("Se está cambiando el valor de una variable iterable del for: " + self.children[0].value)
+            self.checkAsig(stack, forStack)
         ## Chequeamos que el body y la lista de guardias del if la expresión sea booleana
         elif self.category == "Body" or self.category == "GuardList":
                 if self.children[1].checkBoolExp(stack): ## Si la expresión corresponde con un bool, entonces seguimos
                     if (len(self.children) > 2):  ### y seguimos chequeando los StaticErrors de las instrucciones y guardias
-                        child1 = self.children[2].checkStaticErrorsAux(stack, forTableStack) ## Chequeamos errores staticos de las instrucciones
-                        child2 = self.children[3].checkStaticErrorsAux(stack, forTableStack) ## Ahora para las demás guardias
+                        child1 = self.children[2].checkStaticErrorsAux(stack, forStack) ## Chequeamos errores staticos de las instrucciones
+                        child2 = self.children[3].checkStaticErrorsAux(stack, forStack) ## Ahora para las demás guardias
                         return child1 and child2
                     else: 
-                        return self.children[2].checkStaticErrorsAux(stack, forTableStack) ## No hay más guardias, así que solo chequeamos las instrucciones
+                        return self.children[2].checkStaticErrorsAux(stack, forStack) ## No hay más guardias, así que solo chequeamos las instrucciones
                 else:
                     print("Error: La expresión " + self.children[1].value + " no es de tipo bool para una guardia del If")
 
@@ -229,3 +271,22 @@ class BlockNode(Node):
         super().__init__(category, value, children)
         self.symbol_table = Symbol_Table()
         self.symbol_table.fillTable(varList)
+
+    def checkBlock(self, stack, forStack):
+        if not bool(self.symbol_table.getTable()): #Si el bloque tiene variables declaradas
+            stack.insert(0, self.symbol_table)  #Insertamos la nueva tabla de símbolos
+            if (len(self.children) == 2): #Si hay solo una instrucción
+                return self.children[1].checkStaticErrorsAux(stack, forStack)
+            else:
+                stackLength = len(stack) #Si hay una secuencia de instrucciones debemos guardar el tamaño del
+                                            #stack ya que este puede variar dentro de la siguiente instrucción
+                child1 = self.children[1].checkStaticErrorsAux(stack, forStack)
+                while len(stack) != stackLength: #Si el stack varió lo devolvemos al estado en que estaba originalmente
+                    stack.pop(0)
+                child2 = self.children[2].checkStaticErrorsAux(stack, forStack)
+
+                return child1 and child2
+        else:
+            return self.children[0].checkStaticErrorsAux()
+        
+
