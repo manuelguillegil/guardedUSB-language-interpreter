@@ -40,7 +40,7 @@ class Symbol_Table:
         if varList is not None:
             for i in range(len(varList)):
                 if self.table.get(varList[i][0]) is None:
-                    if varList[i][1] == "int" and varList[i][1] == "bool":
+                    if varList[i][1] == "int" or varList[i][1] == "bool":
                         self.table[varList[i][0]] = varList[i][1]
                     else:
                         self.table[varList[i][0]] = ArrayInfo(varList[i][1].split("[")[1])  
@@ -109,18 +109,18 @@ class Node:
 
     #Verifica si un identificador es de un tipo determinado
     def checkIdent(self, tipo, stack, forStack):
-        if self.children[0].searchForTables(forStack):
-            value = self.children[0].searchTables(stack)
+        if self.searchForTables(forStack):
+            value = self.searchTables(stack)
             varTipo = getTipo(value)
             if varTipo == tipo:
                 return True
             else:
                 if varTipo:
-                    print("La variable " + self.children[0].value + " es de tipo " + varTipo\
+                    print("La variable " + self.value + " es de tipo " + varTipo\
                         + " pero debe ser de tipo " + tipo)
                     sys.exit()
                 else:
-                    print("Error: Variable " + self.children[0].value + " no declarada")
+                    print("Error: Variable " + self.value + " no declarada")
                     sys.exit()
         else:
             print("Se está cambiando el valor de una variable iterable del for: " + self.children[0].value)
@@ -400,7 +400,7 @@ class BlockNode(Node):
         self.symbol_table.fillTable(varList)
 
     def checkBlock(self, stack, forStack):
-        if not bool(self.symbol_table.getTable()): #Si el bloque tiene variables declaradas
+        if bool(self.symbol_table.getTable()): #Si el bloque tiene variables declaradas
             stack.insert(0, self.symbol_table)  #Insertamos la nueva tabla de símbolos
             if (len(self.children) == 2): #Si hay solo una instrucción
                 return self.children[1].checkStaticErrorsAux(stack, forStack)
@@ -414,6 +414,6 @@ class BlockNode(Node):
 
                 return child1 and child2
         else:
-            return self.children[0].checkStaticErrorsAux()
+            return self.children[0].checkStaticErrorsAux(stack, forStack)
         
 

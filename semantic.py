@@ -28,6 +28,7 @@ def generateTupleList(varInfo):
 def p_Start(p):
     '''Start : ProgramBlock'''
     p[0] = p[1]
+    p[0].checkStaticErrors()
     p[0].printTree("")
 
 def p_ProgramBlock(p):
