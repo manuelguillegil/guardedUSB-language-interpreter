@@ -83,7 +83,9 @@ def p_SingleTypeDeclaration(p):
 def p_IdType(p):
     '''IdType : TkInt
               | TkBool
-              | TkArray TkOBracket TkNum TkSoForth TkNum TkCBracket'''
+              | TkArray TkOBracket TkNum TkSoForth TkNum TkCBracket
+              | TkArray TkOBracket TkMinus TkNum TkSoForth TkNum TkCBracket
+              | TkArray TkOBracket TkMinus TkNum TkSoForth TkMinus TkNum TkCBracket''' 
     #print("Regla9")
 
     tipo = ""
