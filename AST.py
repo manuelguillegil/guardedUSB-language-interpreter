@@ -123,11 +123,13 @@ class Node:
                     sys.exit()
             else:
                 print("Error: Variable " + self.children[0].value + " no declarada")
+                sys.exit()
         elif self.children[0].category == "ArrayOp" and self.children[0].value == "ArrayAsig":
             if self.checkArrayAsig(stack, forStack):
                 return self.children[0].checkArrayConsult(stack, forStack)
         else:
             print("Error: No estoy muy claro que representaría este error")
+            sys.exit()
 
 
     #Verificación de que el parámetro que se le pasa a la función sea un arreglo que cumpla con las condiciones dadas
@@ -169,15 +171,23 @@ class Node:
             tipo = self.children[0].searchTables(stack)
             if tipo is not None:
                 if tipo == "int":
-                    return self.children[1].checkArithmeticExp(stack, forStack)
+                    if self.children[1].children[0].checkArithmeticExp(stack, forStack):
+                        self.children[1].setValue("ArithOp")
+                        return True
                 elif tipo == "bool":
-                    return self.children[1].checkBoolExp(stack)
+                    if self.children[1].children[0].checkBoolExp(stack):
+                        self.children[1].setValue("BoolOp")
+                        return True
                 else:
-                    return self.children[1].checkArrayExp(stack)
+                    if self.children[1].children[0].checkArrayExp(stack):
+                        self.children[1].setValue("ArrayOp")
+                        return True
             else:
                 print("Error: Variable " + self.children[0].value + " no declarada")
+                sys.exit()
         else:
             print("Se está cambiando el valor de una variable iterable del for: " + self.children[0].value)
+            sys.exit()
 
 
     #Verifica que una expresión sea de tipo aritmética
@@ -219,19 +229,53 @@ class Node:
             self.checkAsig(stack, forStack)
         ## Chequeamos que el body y la lista de guardias del if la expresión sea booleana
         elif self.category == "Body" or self.category == "GuardList":
-                if self.children[1].checkBoolExp(stack): ## Si la expresión corresponde con un bool, entonces seguimos
+                if self.children[0].children[0].checkBoolExp(stack): ## Si la expresión corresponde con un bool, entonces seguimos
+                    self.children[0].setValue("BoolExp")
                     if (len(self.children) > 2):  ### y seguimos chequeando los StaticErrors de las instrucciones y guardias
-                        child1 = self.children[2].checkStaticErrorsAux(stack, forStack) ## Chequeamos errores staticos de las instrucciones
-                        child2 = self.children[3].checkStaticErrorsAux(stack, forStack) ## Ahora para las demás guardias
+                        child1 = self.children[1].checkStaticErrorsAux(stack, forStack) ## Chequeamos errores staticos de las instrucciones
+                        child2 = self.children[2].checkStaticErrorsAux(stack, forStack) ## Ahora para las demás guardias
                         return child1 and child2
                     else: 
-                        return self.children[2].checkStaticErrorsAux(stack, forStack) ## No hay más guardias, así que solo chequeamos las instrucciones
+                        return self.children[1].checkStaticErrorsAux(stack, forStack) ## No hay más guardias, así que solo chequeamos las instrucciones
                 else:
-                    print("Error: La expresión " + self.children[1].value + " no es de tipo bool para una guardia del If")
+                    print("Error: La expresión " + self.children[0].value + " no es de tipo bool para una guardia del If")
+        elif self.category == "Sequence":
+            if len(self.children) == 2:
+                return self.children[0].checkStaticErrorsAux(stack, forStack) and self.children[1].checkStaticErrorsAux(stack, forStack)
+            else:
+                return self.children[0].checkStaticErrorsAux(stack, forStack)
+        elif self.category == "IfDo":
+            return self.children[0].checkStaticErrorsAux(stack, forStack)
+        elif self.category == "Read":
+            return self.children[0].searchForTables(forStack) and self.searchTables(stack)
+        elif self.category == "print" or self.category == "println":
+            if len(self.children) == 1:
+                if self.children[0].category == "Exp":
+                    if self.children[0].children[0].checkArithmeticExp(stack, forStack):
+                        self.children[0].setValue("ArithExp")
+                        return True
+                    elif self.children[0].children[0].checkBoolExp(stack, forStack):
+                        self.children[0].setValue("BoolExp")
+                        return True
+                    elif self.children[0].children[0].checkArrayexp(stack, forStack):
+                        self.children[0].setValue("ArrayExp")
+                        return True
+                    else:
+                        print("Error: Variable " + self.children[0].value + " no declarada")
+                        sys.exit()
+                else:
+                    return True
+            else:
+                pass #Mañana sigo
+
+        
 
 
     def getValue(self):
         return self.value
+
+    def setValue(self, newValue):
+        self.value = newValue
 
 class DecNode(Node):
     def __init__(self, category, value, tupleList, children=None, last=None):

@@ -238,20 +238,18 @@ def p_ExpAux(p):
                 p[0] = Node("BinOp", "Equals", [p[1], p[3]])
             elif p[2] == '!=':
                 p[0] = Node("BinOp", "Nequals", [p[1], p[3]])
-            elif p[2] == '!=':
-                p[0] = Node("BinOp", "Nequals", [p[1], p[3]])
             elif p[2] == '>=':
-                p[0] = Node("BinOp", "Geq", [p[1], p[3]])
+                p[0] = Node("RelOp", "Geq", [p[1], p[3]])
             elif p[2] == '>':
-                p[0] = Node('BinOp', "Greater", [p[1], p[3]])
+                p[0] = Node('RelOp', "Greater", [p[1], p[3]])
             elif p[2] == '<=':
-                p[0] = Node("BinOp", "Leq", [p[1], p[3]])
+                p[0] = Node("RelOp", "Leq", [p[1], p[3]])
             elif p[2] == '<':
-                p[0] = Node('BinOp', "Less", [p[1], p[3]])
+                p[0] = Node('RelOp', "Less", [p[1], p[3]])
             elif p[2] == '\\/':
-                p[0] = Node("BinOp", "Or", [p[1], p[3]])
+                p[0] = Node("BoolOp", "Or", [p[1], p[3]])
             elif p[2] == '/\\':
-                p[0] = Node("BinOp", "And", [p[1], p[3]])
+                p[0] = Node("BoolOp", "And", [p[1], p[3]])
             elif p[2] == '+':
                 p[0] = Node("AritOp", "Plus", [p[1], p[3]])
             elif p[2] == '-':
@@ -277,7 +275,7 @@ def p_ExpAux(p):
         elif len(p) == 7:
             p[0] = Node("ArrayOp", "ArrayAsig", [p[1], p[3], p[5]])
         elif len(p) == 3:
-            p[0] = Node("UnOp", "Not", [p[2]])
+            p[0] = Node("BoolOp", "Not", [p[2]])
         else:
             #print("Last")
             p[0] = p[1]
