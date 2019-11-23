@@ -322,6 +322,7 @@ class Node:
             return self.checkBlock(stack, forStack)
         elif self.category == "For":
             forStack.insert(0, self.children[0].children[0].symbol_table)  #Insertamos la nueva tabla de símbolos
+            return self.children[1].checkStaticErrorsAux(stack, forStack)   ## Chequeamos los errores estáticos del ProgramBlock que contiene el For
         elif self.category == "Asig":
             return self.checkAsig(stack, forStack)
         ## Chequeamos que el body y la lista de guardias del if la expresión sea booleana
