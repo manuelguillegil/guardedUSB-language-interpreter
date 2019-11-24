@@ -262,7 +262,7 @@ def p_ExpAux(p):
             elif p[2] == '/':
                 p[0] = Node("AritOp", "Div", [p[1], p[3]])
             elif p[2] == '%':
-                p[0] = Node("BinOp", "Mod", [p[1], p[3]])
+                p[0] = Node("AritOp", "Mod", [p[1], p[3]])
             elif p[2] == ',':
                 p[0] = Node("ArrayOp", "ArrElementInit", [p[1], p[3]])
             else:

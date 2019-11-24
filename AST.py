@@ -18,15 +18,24 @@ def getTipo(value):
     else:
         return value
 
+def getTipoCompleto(value):
+    if isinstance(value, ArrayInfo):
+        return value.completeInfo()
+    else:
+        return value
+
 class ArrayInfo:
     def __init__(self, info):
         self.tipo = "array"
-        self.li = info.split("..")[0]
-        self.ls = info.split("..")[1].split("]")[0]
+        self.li = int(info.split("..")[0])
+        self.ls = int(info.split("..")[1].split("]")[0])
         self.length = self.ls - self.li + 1
 
+    def checkLimits(self):
+        return self.li < self.ls
+
     def completeInfo(self):
-        return self.tipo + "[" + self.li + ".." + self.ls + "]"
+        return self.tipo + "[" + str(self.li) + ".." + str(self.ls) + "]"
 
     def getLength(self):
         return self.length
@@ -43,7 +52,10 @@ class Symbol_Table:
                     if varList[i][1] == "int" or varList[i][1] == "bool":
                         self.table[varList[i][0]] = varList[i][1]
                     else:
-                        self.table[varList[i][0]] = ArrayInfo(varList[i][1].split("[")[1])  
+                        self.table[varList[i][0]] = ArrayInfo(varList[i][1].split("[")[1])
+                        if not self.table[varList[i][0]].checkLimits():
+                            print("Error: El arreglo " + varList[i][0] + " tiene el límite inferior superior al inferior")
+                            sys.exit()
                 else:
                     print("La variable " + varList[i][0] + " ha sido declarada dos veces en el mismo bloque")
                     sys.exit()
@@ -66,7 +78,10 @@ class Symbol_Table:
                 print(infoIndent + "variable: " + key + " | type: " +  value)
 
     def getValue(self, key):
-        return self.table[key]
+        try:
+            return self.table[key]
+        except:
+            return None
 
     def getTable(self):
         return self.table
@@ -94,6 +109,7 @@ class Node:
             self.children[i].printTree(indent + " ")
 
     def searchTables(self, symbolTableStack):
+        value = None
         for i in range(len(symbolTableStack)):
             value = symbolTableStack[i].getValue(self.value)
             if value is not None:
@@ -111,7 +127,7 @@ class Node:
     def checkIdent(self, tipo, stack, forStack):
         if self.searchForTables(forStack):
             value = self.searchTables(stack)
-            varTipo = getTipo(value)
+            varTipo = getTipoCompleto(value)
             if varTipo == tipo:
                 return True
             else:
@@ -160,6 +176,59 @@ class Node:
             print("Error: No estoy muy claro que representaría este error")
             sys.exit()
 
+    def checkArrayLength(self, stack, forStack, varName):
+        if self.children[0].checkArithmeticExp(stack, forStack):
+            if len(self.children) > 1:
+                initLength = self.children[1].checkArrayInit(stack, forStack, varName) + 1
+            else:
+                initLength = 1
+
+            #Busco la longitud del arreglo en las tablas de símbolos
+            for i in range(len(stack)):
+                varLength = stack[i].getValue(varName).getLength()
+                if varLength:
+                    break
+
+            if initLength == varLength:
+                return True
+            else:
+                print("El arreglo " + varName + " fue inicializado con un número de elementos distintos al declarado")
+                sys.exit()
+        else:
+            print("Expresión no aritmética en la inicialización del arreglo " + varName)
+            sys.exit()
+
+
+    def checkArrayInit(self, stack, forStack, varName):
+        if self.value == "ArrElementInit":
+            if self.children[0].checkArithmeticExp(stack, forStack):
+                if len(self.children) > 1:
+                    return self.children[1].checkArrayInit(stack, forStack, varName) + 1
+                else:
+                    return 1
+            else:
+                print("Expresión no aritmética en la inicialización del arreglo " + varName)
+        else:
+            if self.checkArithmeticExp(stack, forStack):
+                return 1
+
+    def checkArrayType(self, stack, forStack, varName):
+        if self.checkArrayAsig(stack, forStack):
+            for i in range(len(stack)):
+                arrayType = stack[i].getValue(varName).completInfo()
+                if arrayType:
+                    break
+            return self.children[0].checkOriginalArray(stack, forStack, varName, arrayType)
+
+    def checkOriginalArray(self, stack, forStack, varName, arrayType):
+        if self.category == "ArrayOp" and self.value == "ArrayAsig":
+            if self.children[0].checkArrayAsig(stack, forStack):
+                return self.children[0].checkOriginal(stack, forStack, varName, arrayType)
+        elif self.category == "Ident":
+            return self.checkIdent(arrayType, stack, forStack)
+        else:
+            print("Error: Operando inesperado " + self.getValue() + ". Se esperaba asignación de arreglo o variable")
+
 
     #Verificación de que el parámetro que se le pasa a la función sea un arreglo que cumpla con las condiciones dadas
     #por la especificación del lenguaje
@@ -206,13 +275,9 @@ class Node:
                         self.children[1].setValue("BoolExp")
                         return True
                 else:
-                    varLength = tipo.getLength()
-                    if self.children[1].children[0].checkArrayExp(stack, forStack, varLength):
+                    if self.children[1].children[0].checkArrayExp(stack, forStack, self.children[0].getValue()):
                         self.children[1].setValue("ArrayExp")
                         return True
-                    else: #En el caso de la inicialización de arreglos, se devuelve false y con este print se completa el mensaje de error
-                        print(self.children[0].getValue)
-                        sys.exit()
             else:
                 print("Error: Variable " + self.children[0].value + " no declarada")
                 sys.exit()
@@ -243,50 +308,25 @@ class Node:
             print("El operador " + self.value + " no es válido en esta expresión")
             sys.exit()
 
-    def checkArrayInit(self, stack, forStack):
-        if self.category == "ArrayElementInit":
-            if self.children[0].checkArithmeticExp(stack, forStack):
-                if len(self.children) > 1:
-                    return self.children[1].checkArrayInit(stack, forStack) + 1
-                else:
-                    return 1
-            else:
-                print("Expresión no aritmética en la inicialización del arreglo")
-        else:
-            if self.checkArithmeticExp(stack, forStack):
-                return 1
-
-    def checkArrayExp(self, stack, forStack, varLength=None):
+    def checkArrayExp(self, stack, forStack, varName=None):
         if self.category == "ArrayOp":
             if self.value == "ArrayAsig":
-                return self.checkArrayExpAux(stack, forStack) and self.checkArrayAsig(stack, forStack)
-            elif self.value == "ArrayElementInit":
-                if self.children[0].checkArithmeticExp(stack, forStack):
-                    if len(self.children) > 1:
-                        initLength = self.children[1].checkArrayInit(stack, forStack) + 1
-                    else:
-                        initLength = 1
-
-                    if initLength == varLength:
-                        return True
-                    else:
-                        print("Arreglo inicializado con más elementos de los declarados: ")
-                        return False
-                else:
-                    print("Expresión no aritmética en la inicialización del arreglo: ")
-                    return False
+                return self.checkArrayType(stack, forStack, varName)
+            elif self.value == "ArrElementInit":
+                return self.checkArrayLength(stack, forStack, varName)
             else:
                 print("Error: Asignación de valor int a una variable de tipo array")
                 sys.exit()
         else:
-            print("To do")
-
-    def checkArrayExpAux(self, stack, forStack):
-        if self.children[0].category == "ArrayOp" and self.children[0].value == "ArrayAsig":
-            return self.children[0].checkArrayExpAux(stack, forStack) and self.children[0].checkArrayAsig(stack, forStack)
-        elif self.children[0].category == "Ident":
-            return self.checkIdent()
-
+            if self.category == "Ident":
+                for i in range(len(stack)):
+                    arrayType = stack[i].getValue(varName).completInfo()
+                    if arrayType:
+                        break
+                return self.checkIdent(arrayType, stack, forStack)
+            else:
+                print("Error: Se está utilizando operador " + self.value + ", que no es para elementos de tipo array")
+                
 
     def checkStringContent(self, stack, forStack):
         if self.category == "Exp":
@@ -296,7 +336,7 @@ class Node:
             elif self.children[0].checkBoolExp(stack, forStack):
                 self.setValue("BoolExp")
                 return True
-            elif self.children[0].checkArrayexp(stack, forStack):
+            elif self.children[0].checkArrayExp(stack, forStack):
                 self.setValue("ArrayExp")
                 return True
         else:
