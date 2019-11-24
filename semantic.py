@@ -67,7 +67,7 @@ def p_MultipleTypeDeclaration(p):
                                | TkId TkTwoPoints IdType'''
     #print("Regla6")
     if (len(p) == 6):
-        p[0] = ([Node("Ident", p[1])] + p[3][0], p[5] + p[3][1])
+        p[0] = ([Node("Ident", p[1])] + p[3][0], p[3][1] + p[5])
     else:
         p[0] = ([Node("Ident", p[1])], p[3])
         #El caso bse devuelve una tupla que en el primer término contiene el identificador en una lista

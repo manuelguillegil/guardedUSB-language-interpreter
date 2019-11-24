@@ -32,7 +32,7 @@ class ArrayInfo:
         self.length = self.ls - self.li + 1
 
     def checkLimits(self):
-        return self.li < self.ls
+        return self.li <= self.ls
 
     def completeInfo(self):
         return self.tipo + "[" + str(self.li) + ".." + str(self.ls) + "]"
@@ -124,7 +124,9 @@ class Node:
         return True
 
     #Verifica si un identificador es de un tipo determinado
-    def checkIdent(self, tipo, stack, forStack):
+    #cont le indica a la función que debe continuar su proceso y no terminar la ejecución si encuentra algo inesperado
+    #esto permite que el semantic analyzer no colapse cuando está verificando si == o != son de tipo booleano o aritmético
+    def checkIdent(self, tipo, stack, forStack, cont=None):
         if self.searchForTables(forStack):
             value = self.searchTables(stack)
             varTipo = getTipoCompleto(value)
@@ -132,6 +134,8 @@ class Node:
                 return True
             else:
                 if varTipo:
+                    if cont:
+                        return False
                     print("La variable " + self.value + " es de tipo " + varTipo\
                         + " pero debe ser de tipo " + tipo)
                     sys.exit()
@@ -140,7 +144,27 @@ class Node:
                     sys.exit()
         else:
             print("Se está cambiando el valor de una variable iterable del for: " + self.children[0].value)
-            sys.exit()  
+            sys.exit()
+
+    #Esta función es utilizada únicamente utilizada para ver si un identificador es de tipo array, sin importar índices
+    #o longitud del arreglo
+    def checkArrayIdent(self, stack, forStack):
+        if self.searchForTables(forStack):
+            value = self.searchTables(stack)
+            varTipo = getTipo(value)
+            if varTipo == "array":
+                return True
+            else:
+                if varTipo:
+                    print("La variable " + self.value + " es de tipo " + varTipo + " pero debe ser de tipo array")
+                    sys.exit()
+                else:
+                    print("Error: Variable " + self.value + " no declarada")
+                    sys.exit()
+        else:
+            print("Se está cambiando el valor de una variable iterable del for: " + self.children[0].value)
+            sys.exit()
+
 
     #Primero verifica si el arreglo incluye asignaciones. Si las incluye, llama a checkArrayAsig, caso contrario, 
     #devuelve true. Se supone que el identificador del arreglo fue buscado en la tabla antes de llamar a esta función
@@ -157,18 +181,8 @@ class Node:
     #Verifica si la operación de consulta de arreglos es válida
     def checkArrayConsult(self, stack, forStack):
         if self.children[0].category == "Ident":
-            var = self.children[0].searchTables(stack)
-            if var is not None:
-                varTipo = getTipo(var)
-                if varTipo == "array":
+            if self.children[0].checkArrayIdent(stack, forStack):
                     return self.children[1].checkArithmeticExp(stack, forStack)
-                else:
-                    print("Error: La variable " + self.children[0].value + " es de tipo " + varTipo\
-                        + ". Las consultas solo están permitidas sobre los elementos de tipo array")
-                    sys.exit()
-            else:
-                print("Error: Variable " + self.children[0].value + " no declarada")
-                sys.exit()
         elif self.children[0].category == "ArrayOp" and self.children[0].value == "ArrayAsig":
             if self.children[0].checkArrayAsig(stack, forStack):
                 return self.children[0].checkArrayConsult(stack, forStack)
@@ -215,15 +229,15 @@ class Node:
     def checkArrayType(self, stack, forStack, varName):
         if self.checkArrayAsig(stack, forStack):
             for i in range(len(stack)):
-                arrayType = stack[i].getValue(varName).completInfo()
+                arrayType = stack[i].getValue(varName).completeInfo()
                 if arrayType:
                     break
             return self.children[0].checkOriginalArray(stack, forStack, varName, arrayType)
 
     def checkOriginalArray(self, stack, forStack, varName, arrayType):
         if self.category == "ArrayOp" and self.value == "ArrayAsig":
-            if self.children[0].checkArrayAsig(stack, forStack):
-                return self.children[0].checkOriginal(stack, forStack, varName, arrayType)
+            if self.checkArrayAsig(stack, forStack):
+                return self.children[0].checkOriginalArray(stack, forStack, varName, arrayType)
         elif self.category == "Ident":
             return self.checkIdent(arrayType, stack, forStack)
         else:
@@ -240,13 +254,12 @@ class Node:
                 if varTipo == "array": #Verifico el tipo
                     if function == "atoi": #La función atoi requiere verificación adicional del tamaño del arreglo
                         if (var.getLength()) == 1: #si el tamaño es 1
-                            self.checkArray(stack, forStack)
+                            return self.checkArray(stack, forStack)
                         else:
-                            print("El arreglo " + self.children[0].getValue() + " tiene más de un elemento\
-                                la función atoi() no se puede invocar")
+                            print("Error: El arreglo " + self.children[0].getValue() + " tiene más de un elemento la función atoi() no se puede invocar")
                             sys.exit()
                     else: #Las demás no rquieren verificación adicional
-                        self.checkArray(stack, forStack)
+                        return self.checkArray(stack, forStack)
                 else:
                     print("La variable " + self.children[0].getValue() + " no representa un arreglo. La función\
                         utilizada no es aplicable")
@@ -271,7 +284,7 @@ class Node:
                         self.children[1].setValue("ArithExp")
                         return True
                 elif tipo == "bool":
-                    if self.children[1].children[0].checkBoolExp(stack):
+                    if self.children[1].children[0].checkBoolExp(stack, forStack):
                         self.children[1].setValue("BoolExp")
                         return True
                 else:
@@ -286,30 +299,46 @@ class Node:
             sys.exit()
 
     #Verifica que una expresión sea de tipo bool
-    def checkBoolExp(self, stack, forStack):
-        if self.category == "BinOp" and (self.value == "Equals" or self.value == "Nequals"):
-            return (self.children[0].checkBoolExp(stack, forStack) and self.children[1].checkBoolExp(stack, forStack)) or (self.children[0].checkArithmeticExp(stack, forStack) and self.children[1].checkArithmeticExp(stack, forStack))
+    #cont le indica a la función que debe continuar su proceso y no terminar la ejecución si encuentra algo inesperado
+    #esto permite que el semantic analyzer no colapse cuando está verificando si == o != son de tipo booleano o aritmético
+    def checkBoolExp(self, stack, forStack, cont=None):
+        if self.category == "BinOp":
+            if self.children[0].checkBoolExp(stack, forStack, True) and self.children[1].checkBoolExp(stack, forStack, True):
+                self.value = "BoolEqual"
+                return True
+            elif self.children[0].checkArithmeticExp(stack, forStack, True) and self.children[1].checkArithmeticExp(stack, forStack, True):
+                self.value = "ArithEqual"
+                return True
+            else:
+                print("Error: El operador " + self.getValue() + " no está comparando expresiones del mismo tipo o está comparando arrays")
+                sys.exit()
         elif self.category == "RelOp":
             return self.children[0].checkArithmeticExp(stack, forStack) and self.children[1].checkArithmeticExp(stack, forStack)
         elif self.category == "BoolOp" and self.value != "Not":
-            return (self.children[0].checkBoolExp(stack, forStack) and self.children[1].checkBoolExp(stack, forStack)) or (self.children[0].checkArithmeticExp(stack, forStack) and self.children[1].checkArithmeticExp(stack, forStack))
+            return self.children[0].checkBoolExp(stack, forStack) and self.children[1].checkBoolExp(stack, forStack)
         elif self.category == "BoolOp" and self.value == "Not":
             return self.children[0].checkBoolExp(stack, forStack) or self.children[0].checkArithmeticExp(stack, forStack)
         elif self.category == "Ident":
-            return self.checkIdent("bool", stack, forStack)
+            return self.checkIdent("bool", stack, forStack, cont)
         elif self.category == "Literal":
             if self.getValue() == "true" or self.value == "false":
                 return True
             else:
-                print("El literal " + self.getValue() + " no es de tipo bool")
+                if cont:
+                    return False
+                print("Error: El literal " + self.getValue() + " no es de tipo bool")
                 sys.exit()
         else:
-            print("El operador " + self.value + " no es válido en esta expresión")
+            if cont:
+                return False
+            print("Error: El operador " + self.value + " no es válido en esta expresión")
             sys.exit()
 
 
     #Verifica que una expresión sea de tipo aritmética
-    def checkArithmeticExp(self, stack, forStack):
+    #cont le indica a la función que debe continuar su proceso y no terminar la ejecución si encuentra algo inesperado
+    #esto permite que el semantic analyzer no colapse cuando está verificando si == o != son de tipo booleano o aritmético
+    def checkArithmeticExp(self, stack, forStack, cont=None):
         if self.category == "AritOp":
             return self.children[0].checkArithmeticExp(stack, forStack) and self.children[1].checkArithmeticExp(stack, forStack)
         elif self.category == "UnaryMinus":
@@ -318,17 +347,21 @@ class Node:
             return (self.children[0].checkArithmeticExp(stack, forStack) and self.children[1].checkArithmeticExp(stack, forStack))
         elif self.category == "Function":
             return self.checkFunction(stack, forStack, self.value)
-        elif self.category == "ArrayOp" and self.value == "ArrayConsult":
+        elif self.category == "ArrayOp" and self.value == "ArrConsult":
             return self.checkArrayConsult(stack, forStack)
         elif self.category == "Ident":
-            return self.checkIdent("int", stack, forStack)
+            return self.checkIdent("int", stack, forStack, cont)
         elif self.category == "Literal":
-            if self.getValue() != "true" or self.value != "false":
+            if self.value != "true" and self.value != "false":
                 return True
             else:
+                if cont:
+                    return False
                 print("El literal " + self.getValue() + " no es de tipo int")
                 sys.exit()
         else:
+            if cont:
+                return False
             print("El operador " + self.value + " no es válido en esta expresión")
             sys.exit()
 
@@ -344,23 +377,29 @@ class Node:
         else:
             if self.category == "Ident":
                 for i in range(len(stack)):
-                    arrayType = stack[i].getValue(varName).completInfo()
+                    arrayType = stack[i].getValue(varName).completeInfo()
                     if arrayType:
                         break
                 return self.checkIdent(arrayType, stack, forStack)
             else:
                 print("Error: Se está utilizando operador " + self.value + ", que no es para elementos de tipo array")
-                
+
+    def checkArrayExpInString(self, stack, forStack):
+        if self.category == "ArrayOp" and self.getValue() == "ArrayAsig":
+            if self.checkArrayAsig(stack, forStack):
+                return self.children[0].checkArrayExpInString(stack, forStack)
+        elif self.category == "Ident":
+            return self.checkArrayIdent(stack, forStack)
 
     def checkStringContent(self, stack, forStack):
         if self.category == "Exp":
-            if self.children[0].checkArithmeticExp(stack, forStack):
+            if self.children[0].checkArithmeticExp(stack, forStack, True):
                 self.setValue("ArithExp")
                 return True
-            elif self.children[0].checkBoolExp(stack, forStack):
+            elif self.children[0].checkBoolExp(stack, forStack, True):
                 self.setValue("BoolExp")
                 return True
-            elif self.children[0].checkArrayExp(stack, forStack):
+            elif self.children[0].checkArrayExpInString(stack, forStack):
                 self.setValue("ArrayExp")
                 return True
         else:
