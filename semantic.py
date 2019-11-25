@@ -303,7 +303,7 @@ def p_AbsValue(p):
                 | TkFalse'''
     #print("Regla20")
     if type(p[1]) is int:
-        p[0] = Node("Exp", "Exp", [Node("Literal", p[1])])
+        p[0] = Node("Literal", p[1])
     else:
         if p[1] == 'true' or p[1] == 'false':
             p[0] = Node("Literal", p[1])
