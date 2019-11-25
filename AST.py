@@ -360,9 +360,16 @@ class Node:
                     break
             return self.children[0].checkOriginalArray(stack, forStack, varName, arrayType)
 
-    #Para la operación asignación de arreglos, verifica todas las expresiones dentro de las asignaciones y cuando consigue la
-    #variable a la cual se le están aplicando las modificaciones, verifica que sea del mismo tipo de array que la 
-    #variable del lado izquierdo de la asignación
+    #Función recursiva auxiliar de chekArrayType (arriba) que cumple el mismo propósito
+     # Parámetros:
+    # stack: Pila de tablas de símbolos
+    # stack: Pila de variables de control de ciclo for
+    # varName; Nombre de la variable qque se desea inicializar
+    # arrayType: Tipo de arreglo al que pertenece la variable del lado izquierdo de la asignación
+    # Retorna: True si las variables del lado izquierdo y derecho corresponden al mismo tipo de arreglo y si las
+    #expresiones dentro de las asignaciones al arreglo del lado derecho son semánticamente correctas
+    # Si esta función o alguna de las funciones que llama detecta un error semántico muestra un mensaje de error y aborta
+    #la ejecución del programa
     def checkOriginalArray(self, stack, forStack, varName, arrayType):
         if self.category == "ArrayOp" and self.value == "ArrayAsig":
             if self.checkArrayAsig(stack, forStack):
@@ -376,6 +383,13 @@ class Node:
 
     #Verificación de que el parámetro que se le pasa a la función sea un arreglo que cumpla con las condiciones dadas
     #por la especificación del lenguaje
+    # stack: Pila de tablas de símbolos
+    # stack: Pila de variables de control de ciclo for
+    # function: Nombre de la función aplicada sobre el arreglo
+    # Retorna: True si el arreglo cumple con todas las especificaciones requiere el enunciado y si cualquier asignación
+    #que se haga sobre el arreglo parámetro de la función es semánticamente correcta
+    # Si esta función o alguna de las funciones que llama detecta un error semántico muestra un mensaje de error y aborta
+    #la ejecución del programa
     def checkFunction(self, stack, forStack, function):
         if self.children[0].category == "Ident":
             var = self.children[0].searchTables(stack) #Verificamos que la variable esté en la tabla se símbolos
@@ -399,21 +413,25 @@ class Node:
                 sys.exit()
         elif self.children[0].category == "ArrayOp" and self.children[0].value == "ArrayAsig": #si el arreglo estpa modificado
             if self.children[0].checkArrayAsig(stack, forStack):
-                return self.children[0].checkFunction(stack, function)
+                return self.children[0].checkFunction(stack, forStack, function)
         else:
             print("Error: El parámetro de la función no es del tipo soportado por la misma (array)")
             sys.exit()
 
-    #Verifica el tipo de expresión se corresponda con el tipo de la variable 
+    #Verifica el tipo de expresión al lado derecho de la asginación se corresponda con el tipo de la variable
+    # al lado izquierdo de la asignación 
+    # stack: Pila de tablas de símbolos
+    # stack: Pila de variables de control de ciclo for
+    # Retorna: True si la expresión del lado derecho es una espresión ue se corresponde al tipo de la variable del lado
+    # izquierdo y es una expresión semánticamente correcta
+    # Si esta función o alguna de las funciones que llama detecta un error semántico muestra un mensaje de error y aborta
+    #la ejecución del programa
     def checkAsig(self, stack, forStack):
-        print("Hello there")
         if self.children[0].searchForTables(forStack): #Verificamos si la variable está dentro de la tabla de For
             tipo = self.children[0].searchTables(stack)
             if tipo is not None:
                 if tipo == "int":
-                    print("YEY")
                     if self.children[1].children[0].checkArithmeticExp(stack, forStack):
-                        print("YA CASI")
                         self.children[1].setValue("ArithExp")
                         return True
                 elif tipo == "bool":
@@ -520,6 +538,7 @@ class Node:
                 return self.checkIdent(arrayType, stack, forStack)
             else:
                 print("Error: Se está utilizando operador " + self.value + ", que no es para elementos de tipo array")
+                sys.exit()
 
     def checkArrayExpInString(self, stack, forStack):
         if self.category == "ArrayOp" and self.getValue() == "ArrayAsig":
@@ -527,10 +546,6 @@ class Node:
                 return self.children[0].checkArrayExpInString(stack, forStack)
         elif self.category == "Ident":
             return self.checkArrayIdent(stack, forStack)
-        # else:
-        #     print("Otro error en concat")
-        #     self.category()
-        #     sys.exit()
 
     def checkStringContent(self, stack, forStack):
         if self.category == "Exp":
