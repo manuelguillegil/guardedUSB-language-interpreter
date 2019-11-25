@@ -66,8 +66,9 @@ class ArrayInfo:
 #envolvió el mismo dentro de una clase para agruparlo con una serie de métodos que permiten la construcción de la tabla sin
 #errores , así como otras funciones que son útiles a lo largo de la verificación de errores estáticos
 class Symbol_Table:
-    def __init__(self):
+    def __init__(self, isFor):
         self.table ={}
+        self.isFor = isFor
 
     #Llena la información de la tabla de símbolos. Verifica que ninguna variable se declare dos veces o que los arreglos
     #no tengan primer índice mayor al último
@@ -174,115 +175,105 @@ class Node:
         for i in range(len(symbolTableStack)):
             value = symbolTableStack[i].getValue(self.value)
             if value is not None:
+                if symbolTableStack[i].isFor:
+                    print("Error: Se está intentando manipular una variable de control de ciclo for")
+                    sys.exit()
                 return value
         return value
 
     #Dada la pila que almacena las variables de control de ciclos for sin cerrar, verifica que el identificador asocaido 
     # al nodo self no sea una de estas variable de control.
     #Retorna: True si el identificador no se corresponde a ninguna variable de control, false en caso contrario
-    def searchForTables(self, symbolForTableStack):
-        for i in range(len(symbolForTableStack)):
-            value = symbolForTableStack[i].getValue(self.value)
-            if value is not None:
-                return False
-        return True
+    # def searchForTables(self, symbolForTableStack):
+    #     for i in range(len(symbolForTableStack)):
+    #         value = symbolForTableStack[i].getValue(self.value)
+    #         if value is not None:
+    #             return False
+    #     return True
 
     #Verifica si un identificador es de un tipo determinado
     # Parámetros:
     # tipo: Tipo del cual se espera sea la variable
     # stack: Pila de tablas de símbolos
-    # stack: Pila de variables de control de ciclo for
     # cont le indica a la función que debe continuar su proceso y no terminar la ejecución si encuentra algo inesperado
     #esto permite que el semantic analyzer no colapse cuando está verificando si == o != son de tipo booleano o aritmético
     # Retorna; True si el identificador corresponde a una variable de tipo determinado
     #Si el identificador no se corresponde y cont=None, si la variable no fue declarada o si es de control de un for
     #genera un error y acaba la ejecución del programa
-    def checkIdent(self, tipo, stack, forStack, cont=None):
-        if self.searchForTables(forStack):
-            value = self.searchTables(stack)
-            varTipo = getTipoCompleto(value)
-            if varTipo == tipo:
-                return True
-            else:
-                if varTipo:
-                    if cont:
-                        return False
-                    print("Error: La variable " + self.value + " es de tipo " + varTipo\
-                        + " pero debe ser de tipo " + tipo)
-                    sys.exit()
-                else:
-                    print("Error: Variable " + self.value + " no declarada")
-                    sys.exit()
+    def checkIdent(self, tipo, stack, cont=None):
+        value = self.searchTables(stack)
+        varTipo = getTipoCompleto(value)
+        if varTipo == tipo:
+            return True
         else:
-            print("Error: Se está cambiando el valor de una variable iterable del for: " + self.children[0].value)
-            sys.exit()
+            if varTipo:
+                if cont:
+                    return False
+                print("Error: La variable " + self.value + " es de tipo " + varTipo\
+                    + " pero debe ser de tipo " + tipo)
+                sys.exit()
+            else:
+                print("Error: Variable " + self.value + " no declarada")
+                sys.exit()
 
     #Esta función es utilizada únicamente utilizada para ver si un identificador es de tipo array, sin importar índices
     #o longitud del arreglo
      # Parámetros:
     # stack: Pila de tablas de símbolos
-    # stack: Pila de variables de control de ciclo for
     # Retorna; True si el identificador corresponde a una variable de tipo determinado
     #Si el identificador no se corresponde con el tipo y cont=None, si la variable no fue declarada o si es de control 
     # de un for genera un error y acaba la ejecución del programa
-    def checkArrayIdent(self, stack, forStack):
-        if self.searchForTables(forStack):
-            value = self.searchTables(stack)
-            varTipo = getTipo(value)
-            if varTipo == "array":
-                return True
-            else:
-                if varTipo:
-                    print("La variable " + self.value + " es de tipo " + varTipo + " pero debe ser de tipo array")
-                    sys.exit()
-                else:
-                    print("Error: Variable " + self.value + " no declarada")
-                    sys.exit()
+    def checkArrayIdent(self, stack):
+        value = self.searchTables(stack)
+        varTipo = getTipo(value)
+        if varTipo == "array":
+            return True
         else:
-            print("Se está cambiando el valor de una variable iterable del for: " + self.children[0].value)
-            sys.exit()
+            if varTipo:
+                print("La variable " + self.value + " es de tipo " + varTipo + " pero debe ser de tipo array")
+                sys.exit()
+            else:
+                print("Error: Variable " + self.value + " no declarada")
+                sys.exit()
 
 
     #Dado un arreglo cuyo identificador ya sabemos es de tipo array, verifica si el arreglo incluye asignaciones. 
     # Si las incluye, llama a checkArrayAsig
     # Parámetros:
     # stack: Pila de tablas de símbolos
-    # stack: Pila de variables de control de ciclo for
     #Retorna:
     # True si no hay asignaciones o si las asignaciones ncluyen expresiones semánticamente correctas
     # Si alguna de las asignaciones no es semánticamente correcta, la función que descubra el error se encargará
     # de dar un mensaje de error y abortar la ejecución
-    def checkArray(self, stack, forStack):
+    def checkArray(self, stack):
         if len(self.children) == 1:
             return True
         else:
-            return self.checkArrayAsig(stack, forStack)          
+            return self.checkArrayAsig(stack)          
 
     #Verifica si las expresiones dentro de la asignación de arreglos son válidas desde un punto de vistas emántico
     # Parámetros:
     # stack: Pila de tablas de símbolos
-    # stack: Pila de variables de control de ciclo for
     # Retorna: True si las expresioones dentro de la asignación son correctas
     # Si alguna de las asignaciones no es semánticamente correcta, la función que descubra el error se encargará
     # de dar un mensaje de error y abortar la ejecución
-    def checkArrayAsig(self, stack, forStack):
-        return self.children[1].checkArithmeticExp(stack, forStack) and self.children[2].checkArithmeticExp(stack, forStack)
+    def checkArrayAsig(self, stack):
+        return self.children[1].checkArithmeticExp(stack) and self.children[2].checkArithmeticExp(stack)
 
     #Verifica si la operación de consulta de arreglos es semánticamente válida
     # Parámetros:
     # stack: Pila de tablas de símbolos
-    # stack: Pila de variables de control de ciclo for
     # Retorna: True si las expresiones dentro de la consulta son semánticamente correctas y si la consulta se aplica sobre
     # un identificador que represente a un array
     # Si esta función o alguna de las funciones que llama detecta un error semántico muestra un mensaje de error y aborta
     #la ejecución del programa
-    def checkArrayConsult(self, stack, forStack):
+    def checkArrayConsult(self, stack):
         if self.children[0].category == "Ident":
-            if self.children[0].checkArrayIdent(stack, forStack):
-                    return self.children[1].checkArithmeticExp(stack, forStack)
+            if self.children[0].checkArrayIdent(stack):
+                return self.children[1].checkArithmeticExp(stack)
         elif self.children[0].category == "ArrayOp" and self.children[0].value == "ArrayAsig":
-            if self.children[0].checkArrayAsig(stack, forStack):
-                return self.children[0].checkArrayConsult(stack, forStack)
+            if self.children[0].checkArrayAsig(stack):
+                return self.children[0].checkArrayConsult(stack)
         else:
             print("Error: Se está aplicando la operación consulta a algo que no es un arreglo")
             sys.exit()
@@ -291,15 +282,14 @@ class Node:
     #del arreglo según su declaración
     # Parámetros:
     # stack: Pila de tablas de símbolos
-    # stack: Pila de variables de control de ciclo for
     # varName; Nombre de la variable qque se desea inicializar
     # Retorna: True si las expresioones dentro de la asignación son correctas
     # Si esta función o alguna de las funciones que llama detecta un error semántico muestra un mensaje de error y aborta
     #la ejecución del programa
-    def checkArrayLength(self, stack, forStack, varName):
-        if self.children[0].checkArithmeticExp(stack, forStack):
+    def checkArrayLength(self, stack, varName):
+        if self.children[0].checkArithmeticExp(stack):
             if len(self.children) > 1:
-                initLength = self.children[1].checkArrayInit(stack, forStack, varName) + 1
+                initLength = self.children[1].checkArrayInit(stack, varName) + 1
             else:
                 initLength = 1
 
@@ -322,23 +312,22 @@ class Node:
     #que se utiliza para inicializar el arreglo
     # Parámetros:
     # stack: Pila de tablas de símbolos
-    # stack: Pila de variables de control de ciclo for
     # varName; Nombre de la variable qque se desea inicializar
     # Retorna: Número de elementos en la ista contando desde el final hasta el elemento sobre el que se llama la función
     # Si esta función o alguna de las funciones que llama detecta un error semántico muestra un mensaje de error y aborta
     #la ejecución del programa
-    def checkArrayInit(self, stack, forStack, varName):
+    def checkArrayInit(self, stack, varName):
         if self.value == "ArrElementInit":
-            if self.children[0].checkArithmeticExp(stack, forStack):
+            if self.children[0].checkArithmeticExp(stack):
                 if len(self.children) > 1:
-                    return self.children[1].checkArrayInit(stack, forStack, varName) + 1
+                    return self.children[1].checkArrayInit(stack, varName) + 1
                 else:
                     return 1
             else:
                 print("Error: Expresión no aritmética en la inicialización del arreglo " + varName)
                 sys.exit()
         else:
-            if self.checkArithmeticExp(stack, forStack):
+            if self.checkArithmeticExp(stack):
                 return 1
 
     #Función ue verifica (en una asignación con arreglos) que el arreglo del lado izquierdo de la asignación sea del mismo
@@ -346,19 +335,18 @@ class Node:
     # array del lado izquierdo las expresiones dentro de la asignación sean semánticamente válidas
     # Parámetros:
     # stack: Pila de tablas de símbolos
-    # stack: Pila de variables de control de ciclo for
     # varName; Nombre de la variable qque se desea inicializar
     # Retorna: True si las variables del lado izquierdo y derecho corresponden al mismo tipo de arreglo y si las
     #expresiones dentro de las asignaciones al arreglo del lado derecho son semánticamente correctas
     # Si esta función o alguna de las funciones que llama detecta un error semántico muestra un mensaje de error y aborta
     #la ejecución del programa
-    def checkArrayType(self, stack, forStack, varName):
-        if self.checkArrayAsig(stack, forStack):
+    def checkArrayType(self, stack, varName):
+        if self.checkArrayAsig(stack):
             for i in range(len(stack)):
                 arrayType = stack[i].getValue(varName).completeInfo()
                 if arrayType:
                     break
-            return self.children[0].checkOriginalArray(stack, forStack, varName, arrayType)
+            return self.children[0].checkOriginalArray(stack, varName, arrayType)
 
     #Función recursiva auxiliar de chekArrayType (arriba) que cumple el mismo propósito
      # Parámetros:
@@ -370,12 +358,12 @@ class Node:
     #expresiones dentro de las asignaciones al arreglo del lado derecho son semánticamente correctas
     # Si esta función o alguna de las funciones que llama detecta un error semántico muestra un mensaje de error y aborta
     #la ejecución del programa
-    def checkOriginalArray(self, stack, forStack, varName, arrayType):
+    def checkOriginalArray(self, stack, varName, arrayType):
         if self.category == "ArrayOp" and self.value == "ArrayAsig":
-            if self.checkArrayAsig(stack, forStack):
-                return self.children[0].checkOriginalArray(stack, forStack, varName, arrayType)
+            if self.checkArrayAsig(stack):
+                return self.children[0].checkOriginalArray(stack, varName, arrayType)
         elif self.category == "Ident":
-            return self.checkIdent(arrayType, stack, forStack)
+            return self.checkIdent(arrayType, stack)
         else:
             print("Error: Operando inesperado " + self.getValue() + ". Se esperaba asignación de arreglo o variable")
             sys.exit()
@@ -384,13 +372,12 @@ class Node:
     #Verificación de que el parámetro que se le pasa a la función sea un arreglo que cumpla con las condiciones dadas
     #por la especificación del lenguaje
     # stack: Pila de tablas de símbolos
-    # stack: Pila de variables de control de ciclo for
     # function: Nombre de la función aplicada sobre el arreglo
     # Retorna: True si el arreglo cumple con todas las especificaciones requiere el enunciado y si cualquier asignación
     #que se haga sobre el arreglo parámetro de la función es semánticamente correcta
     # Si esta función o alguna de las funciones que llama detecta un error semántico muestra un mensaje de error y aborta
     #la ejecución del programa
-    def checkFunction(self, stack, forStack, function):
+    def checkFunction(self, stack, function):
         if self.children[0].category == "Ident":
             var = self.children[0].searchTables(stack) #Verificamos que la variable esté en la tabla se símbolos
             if var is not None: #Si está 
@@ -398,12 +385,12 @@ class Node:
                 if varTipo == "array": #Verifico el tipo
                     if function == "atoi": #La función atoi requiere verificación adicional del tamaño del arreglo
                         if (var.getLength()) == 1: #si el tamaño es 1
-                            return self.checkArray(stack, forStack)
+                            return self.checkArray(stack)
                         else:
                             print("Error: El arreglo " + self.children[0].getValue() + " tiene más de un elemento la función atoi() no se puede invocar")
                             sys.exit()
                     else: #Las demás no rquieren verificación adicional
-                        return self.checkArray(stack, forStack)
+                        return self.checkArray(stack)
                 else:
                     print("Error: La variable " + self.children[0].getValue() + " no representa un arreglo. La función\
                         utilizada no es aplicable")
@@ -412,8 +399,8 @@ class Node:
                 print("Error: Variable " + self.children[0].value + " no declarada")
                 sys.exit()
         elif self.children[0].category == "ArrayOp" and self.children[0].value == "ArrayAsig": #si el arreglo estpa modificado
-            if self.children[0].checkArrayAsig(stack, forStack):
-                return self.children[0].checkFunction(stack, forStack, function)
+            if self.children[0].checkArrayAsig(stack):
+                return self.children[0].checkFunction(stack, function)
         else:
             print("Error: El parámetro de la función no es del tipo soportado por la misma (array)")
             sys.exit()
@@ -421,63 +408,58 @@ class Node:
     #Verifica el tipo de expresión al lado derecho de la asginación se corresponda con el tipo de la variable
     # al lado izquierdo de la asignación 
     # stack: Pila de tablas de símbolos
-    # stack: Pila de variables de control de ciclo for
     # Retorna: True si la expresión del lado derecho es una espresión ue se corresponde al tipo de la variable del lado
     # izquierdo y es una expresión semánticamente correcta
     # Si esta función o alguna de las funciones que llama detecta un error semántico muestra un mensaje de error y aborta
     #la ejecución del programa
-    def checkAsig(self, stack, forStack):
-        if self.children[0].searchForTables(forStack): #Verificamos si la variable está dentro de la tabla de For
-            tipo = self.children[0].searchTables(stack)
-            if tipo is not None:
-                if tipo == "int":
-                    if self.children[1].children[0].checkArithmeticExp(stack, forStack):
-                        self.children[1].setValue("ArithExp")
-                        return True
-                elif tipo == "bool":
-                    if self.children[1].children[0].checkBoolExp(stack, forStack):
-                        self.children[1].setValue("BoolExp")
-                        return True
-                else:
-                    if self.children[1].children[0].checkArrayExp(stack, forStack, self.children[0].getValue()):
-                        self.children[1].setValue("ArrayExp")
-                        return True
+    def checkAsig(self, stack):
+        tipo = self.children[0].searchTables(stack)
+        if tipo is not None:
+            if tipo == "int":
+                if self.children[1].children[0].checkArithmeticExp(stack):
+                    self.children[1].setValue("ArithExp")
+                    return True
+            elif tipo == "bool":
+                if self.children[1].children[0].checkBoolExp(stack):
+                    self.children[1].setValue("BoolExp")
+                    return True
             else:
-                print("Error: Variable " + self.children[0].value + " no declarada")
-                sys.exit()
+                if self.children[1].children[0].checkArrayExp(stack, self.children[0].getValue()):
+                    self.children[1].setValue("ArrayExp")
+                    return True
         else:
-            print("Error: Se está cambiando el valor de una variable iterable del for: " + self.children[0].value)
+            print("Error: Variable " + self.children[0].value + " no declarada")
             sys.exit()
-
+        
     #Verifica que una expresión sea de tipo bool
     #cont le indica a la función que debe continuar su proceso y no terminar la ejecución si encuentra algo inesperado
     #esto permite que el semantic analyzer no colapse cuando está verificando si == o != son de tipo booleano o aritmético
-    def checkBoolExp(self, stack, forStack, cont=None):
+    def checkBoolExp(self, stack, cont=None):
         if self.category == "BinOp":
-            if self.children[0].checkBoolExp(stack, forStack, True) and self.children[1].checkBoolExp(stack, forStack, True):
+            if self.children[0].checkBoolExp(stack, True) and self.children[1].checkBoolExp(stack, True):
                 self.value = "BoolEqual"
                 return True
-            elif self.children[0].checkArithmeticExp(stack, forStack, True) and self.children[1].checkArithmeticExp(stack, forStack, True):
+            elif self.children[0].checkArithmeticExp(stack, True) and self.children[1].checkArithmeticExp(stack, True):
                 self.value = "ArithEqual"
                 return True
             else:
                 print("Error: El operador " + self.getValue() + " no está comparando expresiones del mismo tipo o está comparando arrays")
                 sys.exit()
         elif self.category == "RelOp":
-            return self.children[0].checkArithmeticExp(stack, forStack) and self.children[1].checkArithmeticExp(stack, forStack)
+            return self.children[0].checkArithmeticExp(stack) and self.children[1].checkArithmeticExp(stack)
         elif self.category == "BoolOp" and self.value != "Not":
-            return self.children[0].checkBoolExp(stack, forStack) and self.children[1].checkBoolExp(stack, forStack)
+            return self.children[0].checkBoolExp(stack) and self.children[1].checkBoolExp(stack)
         elif self.category == "BoolOp" and self.value == "Not":
-            return self.children[0].checkBoolExp(stack, forStack) or self.children[0].checkArithmeticExp(stack, forStack)
+            return self.children[0].checkBoolExp(stack) or self.children[0].checkArithmeticExp(stack)
         elif self.category == "Ident":
-            return self.checkIdent("bool", stack, forStack, cont)
+            return self.checkIdent("bool", stack, cont)
         elif self.category == "Literal":
             if self.getValue() == "true" or self.value == "false":
                 return True
             else:
                 if cont:
                     return False
-                print("Error: El literal " + self.getValue() + " no es de tipo bool")
+                print("Error: El literal " + str(self.getValue()) + " no es de tipo bool")
                 sys.exit()
         else:
             if cont:
@@ -489,23 +471,23 @@ class Node:
     #Verifica que una expresión sea de tipo aritmética
     #cont le indica a la función que debe continuar su proceso y no terminar la ejecución si encuentra algo inesperado
     #esto permite que el semantic analyzer no colapse cuando está verificando si == o != son de tipo booleano o aritmético
-    def checkArithmeticExp(self, stack, forStack, cont=None):
+    def checkArithmeticExp(self, stack, cont=None):
         if self.category == "AritOp":
-            return self.children[0].checkArithmeticExp(stack, forStack) and self.children[1].checkArithmeticExp(stack, forStack)
+            return self.children[0].checkArithmeticExp(stack) and self.children[1].checkArithmeticExp(stack)
         elif self.category == "UnaryMinus":
-            return self.children[0].checkArithmeticExp(stack, forStack)
+            return self.children[0].checkArithmeticExp(stack)
         elif self.category == "BinOp" and self.value == "Mod":
-            return (self.children[0].checkArithmeticExp(stack, forStack) and self.children[1].checkArithmeticExp(stack, forStack))
+            return (self.children[0].checkArithmeticExp(stack) and self.children[1].checkArithmeticExp(stack))
         elif self.category == "Function":
-            return self.checkFunction(stack, forStack, self.value)
+            return self.checkFunction(stack, self.value)
         elif self.category == "ArrayOp" and self.value == "ArrConsult":
-            return self.checkArrayConsult(stack, forStack)
+            return self.checkArrayConsult(stack)
         elif self.category == "Exp":
-            if self.children[0].checkArithmeticExp(stack, forStack):
+            if self.children[0].checkArithmeticExp(stack):
                 self.value = "ArithExp"
                 return True
         elif self.category == "Ident":
-            return self.checkIdent("int", stack, forStack, cont)
+            return self.checkIdent("int", stack, cont)
         elif self.category == "Literal":
             if self.value != "true" and self.value != "false":
                 return True
@@ -520,12 +502,12 @@ class Node:
             print("El operador " + self.value + " no es válido en esta expresión")
             sys.exit()
 
-    def checkArrayExp(self, stack, forStack, varName=None):
+    def checkArrayExp(self, stack, varName=None):
         if self.category == "ArrayOp":
             if self.value == "ArrayAsig":
-                return self.checkArrayType(stack, forStack, varName)
+                return self.checkArrayType(stack, varName)
             elif self.value == "ArrElementInit":
-                return self.checkArrayLength(stack, forStack, varName)
+                return self.checkArrayLength(stack, varName)
             else:
                 print("Error: Asignación de valor int a una variable de tipo array")
                 sys.exit()
@@ -535,54 +517,55 @@ class Node:
                     arrayType = stack[i].getValue(varName).completeInfo()
                     if arrayType:
                         break
-                return self.checkIdent(arrayType, stack, forStack)
+                return self.checkIdent(arrayType, stack)
             else:
                 print("Error: Se está utilizando operador " + self.value + ", que no es para elementos de tipo array")
                 sys.exit()
 
-    def checkArrayExpInString(self, stack, forStack):
+    def checkArrayExpInString(self, stack):
         if self.category == "ArrayOp" and self.getValue() == "ArrayAsig":
-            if self.checkArrayAsig(stack, forStack):
-                return self.children[0].checkArrayExpInString(stack, forStack)
+            if self.checkArrayAsig(stack):
+                return self.children[0].checkArrayExpInString(stack)
         elif self.category == "Ident":
-            return self.checkArrayIdent(stack, forStack)
+            return self.checkArrayIdent(stack)
 
-    def checkStringContent(self, stack, forStack):
+    def checkStringContent(self, stack):
         if self.category == "Exp":
-            if self.children[0].checkArithmeticExp(stack, forStack, True):
+            if self.children[0].checkArithmeticExp(stack, True):
                 self.setValue("ArithExp")
                 return True
-            elif self.children[0].checkBoolExp(stack, forStack, True):
+            elif self.children[0].checkBoolExp(stack, True):
                 self.setValue("BoolExp")
                 return True
-            elif self.children[0].checkArrayExpInString(stack, forStack):
+            elif self.children[0].checkArrayExpInString(stack):
                 self.setValue("ArrayExp")
                 return True
         else:
             return True
 
-    def checkConcat(self, stack, forStack):
+    def checkConcat(self, stack):
         if self.children[0].category == "Concat":
-            if self.children[0].children[0].checkStringContent(stack, forStack):
-                return self.children[0].children[1].checkConcat(stack, forStack)
+            if self.children[0].children[0].checkStringContent(stack):
+                return self.children[0].children[1].checkConcat(stack)
         else:
-            return self.children[0].checkStringContent(stack, forStack)
+            return self.children[0].checkStringContent(stack)
 
-    def checkFor(self, stack, forStack):
-        forStack.insert(0, self.children[0].children[0].symbol_table)  #Insertamos la nueva tabla de símbolos
-        if self.children[1].checkStaticErrorsAux(stack, forStack): ## Chequeamos los errores estáticos del ProgramBlock que contiene el For
-            forStack.pop(0) #Cuando termino de ejecutar el for desempilo la variable de control
+    def checkFor(self, stack):
+        #Que revise el rango, falta eso
+        stack.insert(0, self.children[0].children[0].symbol_table)  #Insertamos la nueva tabla de símbolos
+        if self.children[1].checkStaticErrorsAux(stack): ## Chequeamos los errores estáticos del ProgramBlock que contiene el For
+            stack.pop(0) #Cuando termino de ejecutar el for desempilo la variable de control
             return True
 
-    def checkGuards(self, stack, forStack):
-        if self.children[0].children[0].checkBoolExp(stack, forStack): ## Si la expresión corresponde con un bool, entonces seguimos
+    def checkGuards(self, stack):
+        if self.children[0].children[0].checkBoolExp(stack): ## Si la expresión corresponde con un bool, entonces seguimos
             self.children[0].setValue("BoolExp")
             if (len(self.children) > 2):  ### y seguimos chequeando los StaticErrors de las instrucciones y guardias
-                child1 = self.children[1].checkStaticErrorsAux(stack, forStack) ## Chequeamos errores staticos de las instrucciones
-                child2 = self.children[2].checkStaticErrorsAux(stack, forStack) ## Ahora para las demás guardias
+                child1 = self.children[1].checkStaticErrorsAux(stack) ## Chequeamos errores staticos de las instrucciones
+                child2 = self.children[2].checkStaticErrorsAux(stack) ## Ahora para las demás guardias
                 return child1 and child2
             else: 
-                return self.children[1].checkStaticErrorsAux(stack, forStack) ## No hay más guardias, así que solo chequeamos las instrucciones
+                return self.children[1].checkStaticErrorsAux(stack) ## No hay más guardias, así que solo chequeamos las instrucciones
         else:
             print("Error: La expresión " + self.children[0].value + " no es de tipo bool para una guardia del If")
             sys.exit()
@@ -592,38 +575,37 @@ class Node:
     #Inicial el procedimiento de análisis semántico del AST
     def checkStaticErrors(self):
         tableStack = []
-        forTableStack = []
-        return self.checkStaticErrorsAux(tableStack, forTableStack)
+        return self.checkStaticErrorsAux(tableStack)
 
     #Esta función verifica los distintos tipos de nodos que tiene el árbol y verifica que todo tenga sentido desde el
     #punto de vista semántico
-    def checkStaticErrorsAux(self, stack, forStack):
+    def checkStaticErrorsAux(self, stack):
         if isinstance(self, BlockNode):
-            return self.checkBlock(stack, forStack)
+            return self.checkBlock(stack)
         elif self.category == "For":
-            return self.checkFor(stack, forStack)
+            return self.checkFor(stack)
         elif self.category == "Asig":
-            return self.checkAsig(stack, forStack)
+            return self.checkAsig(stack)
         ## Chequeamos que el body y la lista de guardias del if la expresión sea booleana
         elif self.category == "Body" or self.category == "Guard":
-            return self.checkGuards(stack, forStack)
+            return self.checkGuards(stack)
         elif self.category == "InstSequence":
             if len(self.children) == 2:
-                return all([self.children[0].checkStaticErrorsAux(stack, forStack), self.children[1].checkStaticErrorsAux(stack, forStack)])
+                return all([self.children[0].checkStaticErrorsAux(stack), self.children[1].checkStaticErrorsAux(stack)])
             else:
-                return self.children[0].checkStaticErrorsAux(stack, forStack)
+                return self.children[0].checkStaticErrorsAux(stack)
         elif self.category == "if" or self.category == "do":
-            return self.children[0].checkStaticErrorsAux(stack, forStack)
+            return self.children[0].checkStaticErrorsAux(stack)
         elif self.category == "Read":
-            return all([self.children[0].searchForTables(forStack), self.searchTables(stack) is not None])
+            return self.searchTables(stack) is not None
         elif self.category == "print" or self.category == "println":
             if len(self.children) == 1:
-                self.children[0].checkStringContent(stack, forStack)
+                self.children[0].checkStringContent(stack)
             else:
-                if self.children[0].checkStringContent(stack, forStack):
-                    return self.children[1].checkStaticErrorsAux(stack, forStack)
+                if self.children[0].checkStringContent(stack):
+                    return self.children[1].checkStaticErrorsAux(stack)
         elif self.category == "Concat":
-            return self.checkConcat(stack, forStack)
+            return self.checkConcat(stack)
         else:
             print("Error inesperado")
             print(self.category)
@@ -662,33 +644,35 @@ class DecNode(Node):
 
 class ForNode(Node):
     
-    def __init__(self, category, value, children=None, var=None):
+    def __init__(self, category, value, isFor, children=None, var=None):
         super().__init__(category, value, children)
-        self.symbol_table = Symbol_Table()
+        self.symbol_table = Symbol_Table(isFor)
         self.symbol_table.fillTableFor(var)
 
 class BlockNode(Node):
     
-    def __init__(self, category, value, children=None, varList=None):
+    def __init__(self, category, value, isFor, children=None, varList=None):
         super().__init__(category, value, children)
-        self.symbol_table = Symbol_Table()
+        self.symbol_table = Symbol_Table(isFor)
         self.symbol_table.fillTable(varList)
 
-    def checkBlock(self, stack, forStack):
+    def checkBlock(self, stack):
         if bool(self.symbol_table.getTable()): #Si el bloque tiene variables declaradas
             stack.insert(0, self.symbol_table)  #Insertamos la nueva tabla de símbolos
             if (len(self.children) == 2): #Si hay solo una instrucción
-                return self.children[1].checkStaticErrorsAux(stack, forStack)
+                return self.children[1].checkStaticErrorsAux(stack)
             else:
                 stackLength = len(stack) #Si hay una secuencia de instrucciones debemos guardar el tamaño del
                                             #stack ya que este puede variar dentro de la siguiente instrucción
-                child1 = self.children[1].checkStaticErrorsAux(stack, forStack)
+                child1 = self.children[1].checkStaticErrorsAux(stack)
                 while len(stack) != stackLength: #Si el stack varió lo devolvemos al estado en que estaba originalmente
                     stack.pop(0)
-                child2 = self.children[2].checkStaticErrorsAux(stack, forStack)
+                child2 = self.children[2].checkStaticErrorsAux(stack)
+
+                stack.pop(0)
 
                 return child1 and child2
         else:
-            return self.children[0].checkStaticErrorsAux(stack, forStack)
+            return self.children[0].checkStaticErrorsAux(stack)
         
 

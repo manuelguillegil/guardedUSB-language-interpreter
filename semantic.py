@@ -36,9 +36,9 @@ def p_ProgramBlock(p):
                     | TkOBlock Instructions TkCBlock'''
     #print("Regla1")
     if len(p) == 6:
-        p[0] = BlockNode("ProgramBlock", "Block", [Node("Declare", "Declare", [p[3]])] + p[4], p[3].getDeclaredVars())
+        p[0] = BlockNode("ProgramBlock", "Block", False, [Node("Declare", "Declare", [p[3]])] + p[4], p[3].getDeclaredVars())
     else:
-        p[0] = BlockNode("ProgramBlock", "Block", p[2])
+        p[0] = BlockNode("ProgramBlock", "Block", False, p[2])
         #print(len(p[0].children))
 
 def p_DeclareLines(p):
@@ -206,7 +206,7 @@ def p_For(p):
 
 def p_In(p):
     '''In : TkId TkIn ExpAux TkTo ExpAux'''
-    p[0] = ForNode("Ident", p[1], [p[3], p[5]], p[1])
+    p[0] = ForNode("Ident", p[1], True, [p[3], p[5]], p[1])
 
 def p_ExpAux(p):
     '''ExpAux  : ExpAux TkOpenPar ExpAux TkTwoPoints ExpAux TkClosePar
