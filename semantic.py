@@ -193,7 +193,7 @@ def p_GuardList(p):
     '''GuardList : TkGuard ExpAux TkArrow Instructions GuardList
                  | TkGuard ExpAux TkArrow Instructions'''
     #print("Regla16")
-    if len(p) == 7:
+    if len(p) == 6:
         p[0] = Node("Guard", "Guard", [Node("Exp", "Exp", [p[2]])] + p[4] + [p[5]])
     else:
         p[0] = Node("Guard", "Guard", [Node("Exp", "Exp", [p[2]])] + p[4])
@@ -269,7 +269,7 @@ def p_ExpAux(p):
                 p_error(p[2])
         elif len(p) == 5:
             if p[2] == '[':
-                p[0] = Node("ArrayOp", "ArrConsult", [p[1], Node("Exp", "Exp", [p[3]])])
+                p[0] = Node("ArrayOp", "ArrConsult", [p[1],p[3]])
             else:
                 if p[1] == '-':
                     p[0] = Node("UnaryMinus", "UnaryMinus", [p[3]])
@@ -303,7 +303,7 @@ def p_AbsValue(p):
                 | TkFalse'''
     #print("Regla20")
     if type(p[1]) is int:
-        p[0] = Node("Literal", p[1])
+        p[0] = Node("Exp", "Exp", [Node("Literal", p[1])])
     else:
         if p[1] == 'true' or p[1] == 'false':
             p[0] = Node("Literal", p[1])

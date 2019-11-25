@@ -206,10 +206,10 @@ class Node:
             if initLength == varLength:
                 return True
             else:
-                print("El arreglo " + varName + " fue inicializado con un número de elementos distintos al declarado")
+                print("Error: El arreglo " + varName + " fue inicializado con un número de elementos distintos al declarado")
                 sys.exit()
         else:
-            print("Expresión no aritmética en la inicialización del arreglo " + varName)
+            print("Error: Expresión no aritmética en la inicialización del arreglo " + varName)
             sys.exit()
 
 
@@ -221,7 +221,7 @@ class Node:
                 else:
                     return 1
             else:
-                print("Expresión no aritmética en la inicialización del arreglo " + varName)
+                print("Error: Expresión no aritmética en la inicialización del arreglo " + varName)
         else:
             if self.checkArithmeticExp(stack, forStack):
                 return 1
@@ -261,7 +261,7 @@ class Node:
                     else: #Las demás no rquieren verificación adicional
                         return self.checkArray(stack, forStack)
                 else:
-                    print("La variable " + self.children[0].getValue() + " no representa un arreglo. La función\
+                    print("Error: La variable " + self.children[0].getValue() + " no representa un arreglo. La función\
                         utilizada no es aplicable")
                     sys.exit()
             else: #La variable no está en la tabla
@@ -295,7 +295,7 @@ class Node:
                 print("Error: Variable " + self.children[0].value + " no declarada")
                 sys.exit()
         else:
-            print("Se está cambiando el valor de una variable iterable del for: " + self.children[0].value)
+            print("Error: Se está cambiando el valor de una variable iterable del for: " + self.children[0].value)
             sys.exit()
 
     #Verifica que una expresión sea de tipo bool
@@ -349,6 +349,10 @@ class Node:
             return self.checkFunction(stack, forStack, self.value)
         elif self.category == "ArrayOp" and self.value == "ArrConsult":
             return self.checkArrayConsult(stack, forStack)
+        elif self.category == "Exp":
+            if self.children[0].checkArithmeticExp(stack, forStack):
+                self.value = "ArithExp"
+                return True
         elif self.category == "Ident":
             return self.checkIdent("int", stack, forStack, cont)
         elif self.category == "Literal":
@@ -412,6 +416,26 @@ class Node:
         else:
             return self.children[0].checkStringContent(stack, forStack)
 
+    def checkFor(self, stack, forStack):
+        forStack.insert(0, self.children[0].children[0].symbol_table)  #Insertamos la nueva tabla de símbolos
+        if self.children[1].checkStaticErrorsAux(stack, forStack): ## Chequeamos los errores estáticos del ProgramBlock que contiene el For
+            forStack.pop(0) #Cuando termino de ejecutar el for desempilo la variable de control
+            return True
+
+    def checkGuards(self, stack, forStack):
+        if self.children[0].children[0].checkBoolExp(stack, forStack): ## Si la expresión corresponde con un bool, entonces seguimos
+            self.children[0].setValue("BoolExp")
+            if (len(self.children) > 2):  ### y seguimos chequeando los StaticErrors de las instrucciones y guardias
+                child1 = self.children[1].checkStaticErrorsAux(stack, forStack) ## Chequeamos errores staticos de las instrucciones
+                child2 = self.children[2].checkStaticErrorsAux(stack, forStack) ## Ahora para las demás guardias
+                return child1 and child2
+            else: 
+                return self.children[1].checkStaticErrorsAux(stack, forStack) ## No hay más guardias, así que solo chequeamos las instrucciones
+        else:
+            print("Error: La expresión " + self.children[0].value + " no es de tipo bool para una guardia del If")
+
+
+
     #Inicial el procedimiento de análisis semántico del AST
     def checkStaticErrors(self):
         tableStack = []
@@ -424,28 +448,18 @@ class Node:
         if isinstance(self, BlockNode):
             return self.checkBlock(stack, forStack)
         elif self.category == "For":
-            forStack.insert(0, self.children[0].children[0].symbol_table)  #Insertamos la nueva tabla de símbolos
-            return self.children[1].checkStaticErrorsAux(stack, forStack)   ## Chequeamos los errores estáticos del ProgramBlock que contiene el For
+            return self.checkFor(stack, forStack)
         elif self.category == "Asig":
             return self.checkAsig(stack, forStack)
         ## Chequeamos que el body y la lista de guardias del if la expresión sea booleana
-        elif self.category == "Body" or self.category == "GuardList":
-                if self.children[0].children[0].checkBoolExp(stack): ## Si la expresión corresponde con un bool, entonces seguimos
-                    self.children[0].setValue("BoolExp")
-                    if (len(self.children) > 2):  ### y seguimos chequeando los StaticErrors de las instrucciones y guardias
-                        child1 = self.children[1].checkStaticErrorsAux(stack, forStack) ## Chequeamos errores staticos de las instrucciones
-                        child2 = self.children[2].checkStaticErrorsAux(stack, forStack) ## Ahora para las demás guardias
-                        return child1 and child2
-                    else: 
-                        return self.children[1].checkStaticErrorsAux(stack, forStack) ## No hay más guardias, así que solo chequeamos las instrucciones
-                else:
-                    print("Error: La expresión " + self.children[0].value + " no es de tipo bool para una guardia del If")
-        elif self.category == "Sequence":
+        elif self.category == "Body" or self.category == "Guard":
+            return self.checkGuards(stack, forStack)
+        elif self.category == "InstSequence":
             if len(self.children) == 2:
                 return self.children[0].checkStaticErrorsAux(stack, forStack) and self.children[1].checkStaticErrorsAux(stack, forStack)
             else:
                 return self.children[0].checkStaticErrorsAux(stack, forStack)
-        elif self.category == "IfDo":
+        elif self.category == "if" or self.category == "do":
             return self.children[0].checkStaticErrorsAux(stack, forStack)
         elif self.category == "Read":
             return self.children[0].searchForTables(forStack) and self.searchTables(stack)
@@ -453,10 +467,14 @@ class Node:
             if len(self.children) == 1:
                 self.children[0].checkStringContent(stack, forStack)
             else:
-                if self.checkStringContent(stack, forStack):
+                if self.children[0].checkStringContent(stack, forStack):
                     return self.children[1].checkStaticErrorsAux(stack, forStack)
         elif self.category == "Concat":
-            return self.checkConcat(stack, forStack) 
+            return self.checkConcat(stack, forStack)
+        else:
+            print("Error inesperado")
+            print(self.category)
+            sys.exit()
 
     def getValue(self):
         return self.value
