@@ -114,7 +114,7 @@ class Symbol_Table:
                 print(infoIndent + "variable: " + key + " | type: " +  value)
 
     #Dado un identificador, busca en la tabla de símbolos el objeto que representa en la tabla al tipo de dicho identificador
-    #Parámetro
+    # Parámetro:
     # key: Nombre del identificador
     # Retorna: El objeto asociado al identificador si este está en la tabla, None si no
     def getValue(self, key):
@@ -129,13 +129,13 @@ class Symbol_Table:
 
 #Esta clase es la de los nodos que forman el AST. Cada nodo de esta clase (o que hereda de esta clase) tiene 
 #una categoría (Exp, AritOp, ident, etc.) dependiendo del objeto que representa dentro del lenguaje, un valor
-#que es lo que se imprime en el árbol y una lista de hijps
+#que es lo que se imprime en el árbol y una lista de hijos
 class Node:
     #Constructor de clase Node
     #Parámetros:
     # category: categoría del nodo
     # value: Valr que debe imprimir el nodo
-    # children: Lista con los nodos hijos. Si no se le pasa este parámtro, por default se le asigna la lista vacía
+    # children: Lista con los nodos hijos. Si no se le pasa este parámetro, por default se le asigna la lista vacía.
     def __init__(self, category, value, children=None):
         self.category = category
         self.value = value
@@ -205,7 +205,7 @@ class Node:
                 print("Error: Variable " + self.value + " no declarada")
                 sys.exit()
 
-    #Esta función es utilizada únicamente utilizada para ver si un identificador es de tipo array, sin importar índices
+    # Esta función es utilizada únicamente para ver si un identificador es de tipo array, sin importar índices
     #o longitud del arreglo
      # Parámetros:
     # stack: Pila de tablas de símbolos
@@ -481,6 +481,10 @@ class Node:
             print("El operador " + self.value + " no es válido en esta expresión")
             sys.exit()
 
+    ## Verifica que la expresión en relación al Array cumpla con las condiciones del tipo de dato
+    ## como lo puede ser los operadores para los elementos de tipo array, consultas y asignaciones
+    ## Paramétros;
+    ## stack de la tabla de símbolos y varName que es el nombre de la variable
     def checkArrayExp(self, stack, varName=None):
         if self.category == "ArrayOp":
             if self.value == "ArrayAsig":
@@ -501,6 +505,8 @@ class Node:
                 print("Error: Se está utilizando operador " + self.value + ", que no es para elementos de tipo array")
                 sys.exit()
 
+    ## Verifica que para un Array, que si es de categoria de operación sobre array y su valor es una asignación a un array
+    ## entonces hacemos un llamado recursivo (con sus verificaciones correspondientes) hasta llegar al identificador y chequearlo
     def checkArrayExpIndependent(self, stack):
         if self.category == "ArrayOp" and self.getValue() == "ArrayAsig":
             if self.checkArrayAsig(stack):
@@ -508,6 +514,8 @@ class Node:
         elif self.category == "Ident":
             return self.checkArrayIdent(stack)
 
+    ## Verificamos el contenido de un String. Si el contenido es una expresión, chequeamos que corresponda con alguna expresión 
+    ## de tipo aritmético, bool o de array
     def checkStringContent(self, stack):
         if self.category == "Exp":
             if self.children[0].checkArithmeticExp(stack, True):
@@ -522,6 +530,7 @@ class Node:
         else:
             return True
 
+    ## Esta función nos permite verificar que cada string que se concatene podamos chequear su contenido que sea válido
     def checkConcat(self, stack):
         if self.children[0].category == "Concat":
             if self.children[0].children[0].checkStringContent(stack):
@@ -529,23 +538,28 @@ class Node:
         else:
             return self.children[0].checkStringContent(stack)
 
+    ## Permite añadir la tabla de símbolo del For y además luego de verificar las expresiones que la componen sea de tipo aritmético, 
+    ## vamos a chequear los errores estáticos del hijo que corresponde al bloque de instrucciones del For
+    ## Paramétros:
+    ## Nodo de tipo ForNode y la pila de tablas de símbolo
     def checkFor(self, stack):
-        #Que revise el rango, falta eso
-        stack.insert(0, self.children[0].children[0].symbol_table)  #Insertamos la nueva tabla de 
+        stack.insert(0, self.children[0].children[0].symbol_table) 
         if self.children[0].children[0].children[0].checkArithmeticExp(stack) and self.children[0].children[0].children[1].checkArithmeticExp(stack):
-            if self.children[1].checkStaticErrorsAux(stack): ## Chequeamos los errores estáticos del ProgramBlock que contiene el For
-                stack.pop(0) #Cuando termino de ejecutar el for desempilo la variable de control
+            if self.children[1].checkStaticErrorsAux(stack):
+                stack.pop(0)
                 return True
 
+    ## Verificamos para las guardias: Si la expresión corresponde con un bool, entonces seguimos y seguimos chequeando los StaticErrors de las instrucciones y los componentes de la guardia
+    ## luego chequeamos errores staticos de las instrucciones para el primer hijo y si tiene un segundo hijo (que existen más guardias), chequeamos las demás guardias hasta llegar a la última
     def checkGuards(self, stack):
-        if self.children[0].children[0].checkBoolExp(stack): ## Si la expresión corresponde con un bool, entonces seguimos
+        if self.children[0].children[0].checkBoolExp(stack):
             self.children[0].setValue("BoolExp")
-            if (len(self.children) > 2):  ### y seguimos chequeando los StaticErrors de las instrucciones y guardias
-                child1 = self.children[1].checkStaticErrorsAux(stack) ## Chequeamos errores staticos de las instrucciones
-                child2 = self.children[2].checkStaticErrorsAux(stack) ## Ahora para las demás guardias
+            if (len(self.children) > 2):  
+                child1 = self.children[1].checkStaticErrorsAux(stack) 
+                child2 = self.children[2].checkStaticErrorsAux(stack)
                 return child1 and child2
             else: 
-                return self.children[1].checkStaticErrorsAux(stack) ## No hay más guardias, así que solo chequeamos las instrucciones
+                return self.children[1].checkStaticErrorsAux(stack)
         else:
             print("Error: La expresión " + self.children[0].value + " no es de tipo bool para una guardia del If")
             sys.exit()
@@ -557,8 +571,10 @@ class Node:
         tableStack = []
         return self.checkStaticErrorsAux(tableStack)
 
-    #Esta función verifica los distintos tipos de nodos que tiene el árbol y verifica que todo tenga sentido desde el
-    #punto de vista semántico
+    # Esta función verifica los distintos tipos de nodos que tiene el árbol y verifica que todo tenga sentido desde el
+    # punto de vista semántico. Para ello consideramos las instancias de los BlockNode, categorias de tipo For, Asig, Body, InstSequence, If, Read, etc...
+    ## también se incluye el caso de que exista un error inesperado con las categorías de cada Nodo que vayamos a chequear al no corresponder con alguna de estas categorías válidas
+    ## y por lo tanto imprime la categoría error y aborta
     def checkStaticErrorsAux(self, stack):
         if isinstance(self, BlockNode):
             return self.checkBlock(stack)
@@ -566,7 +582,6 @@ class Node:
             return self.checkFor(stack)
         elif self.category == "Asig":
             return self.checkAsig(stack)
-        ## Chequeamos que el body y la lista de guardias del if la expresión sea booleana
         elif self.category == "Body" or self.category == "Guard":
             return self.checkGuards(stack)
         elif self.category == "InstSequence":
@@ -591,22 +606,29 @@ class Node:
             print(self.category)
             sys.exit()
 
+    ## Retorna el atributo value de un Node
     def getValue(self):
         return self.value
 
+    ## Inserta un valor al atributo value de un Node
+    ## Paramétro: newValue que corresponde al nuevo valor a insertar
     def setValue(self, newValue):
         self.value = newValue
 
+## Creamos un objeto llamado DecNode el cual tendrá de herencia al objeto Node, pero que nos servirá para añadir información adicional
+## y crear una distinción con los demás nodos. La principal característica es que tendrá el tupleList que corresponde a la lista de variable - tipo
+## y con el cual construiremos las variables declaradas correspondientes.
 class DecNode(Node):
     def __init__(self, category, value, tupleList, children=None, last=None):
         super().__init__(category, value, children)
         self.declaredVars = tupleList
         self.lastLine = last
 
+    ## Retorna la tupleList que corresponde a las variables declaradas en el Nodo
     def getDeclaredVars(self):
         return self.declaredVars
 
-    #Esto me permite que cada línea de declaración se vea como hija de la línea anterior
+    #Esto me permite que cada línea de declaración se vea como hija de la línea anterior. 
     def addChildren(self, newChildren):
         if self.lastLine: #Si esta es la última línea de declaración leída, el hijo va aquí
             sequence = len(self.children) #Esta es la ubicación en la lista de hijos donde va el nuevo hijo
@@ -622,30 +644,37 @@ class DecNode(Node):
     def addTupleList(self, newTuples):
         self.declaredVars += newTuples
 
+### Creamos un objeto llamado ForNode el cual tendrá de herencia al objeto Node, pero que nos servirá para añadir información adicional
+## y crear una distinción con los demás nodos. La principal característica tendrá una tabla de simbolo de la variable de iteracción del For
 class ForNode(Node):
-    
+    ## Construcción e inicialización del objeto ForNode
     def __init__(self, category, value, isFor, children=None, var=None):
         super().__init__(category, value, children)
         self.symbol_table = Symbol_Table(isFor)
         self.symbol_table.fillTableFor(var)
 
+### Creamos un objeto llamado BlockNode el cual tendrá de herencia al objeto Node, pero que nos servirá para añadir información adicional
+## y crear una distinción con los demás nodos. Tendrá una tabla de simbolo de las variables declaradas el bloque correspondiente.
 class BlockNode(Node):
-    
+    ## Construcción e inicialización del objeto BlockNode
     def __init__(self, category, value, isFor, children=None, varList=None):
         super().__init__(category, value, children)
         self.symbol_table = Symbol_Table(isFor)
         self.symbol_table.fillTable(varList)
 
+    ## Verificamos que si el bloque tiene variables declaradas insertamos la nueva tabla de símbolos. De lo contrario solo chequeamos los errores estáticos de las instrucciones
+    ## Luego para un bloque con variables declaradas chequeamos los errores estáticos si solo hay una instrucción y si hay varias, chequeamos el segundo y tercer hijo
+    ## que corresponde a la instrucción y a la secuencia de instrucciones. Cabe resaltar que es necesario guardar el tamaño del stack ya que este puede variar dentro de la instrucción
+    ## y luego tenemos que volver al stack al estado original en caso de alguna variación.
     def checkBlock(self, stack):
-        if bool(self.symbol_table.getTable()): #Si el bloque tiene variables declaradas
-            stack.insert(0, self.symbol_table)  #Insertamos la nueva tabla de símbolos
-            if (len(self.children) == 2): #Si hay solo una instrucción
+        if bool(self.symbol_table.getTable()):
+            stack.insert(0, self.symbol_table)
+            if (len(self.children) == 2):
                 return self.children[1].checkStaticErrorsAux(stack)
             else:
-                stackLength = len(stack) #Si hay una secuencia de instrucciones debemos guardar el tamaño del
-                                            #stack ya que este puede variar dentro de la siguiente instrucción
+                stackLength = len(stack)
                 child1 = self.children[1].checkStaticErrorsAux(stack)
-                while len(stack) != stackLength: #Si el stack varió lo devolvemos al estado en que estaba originalmente
+                while len(stack) != stackLength:
                     stack.pop(0)
                 child2 = self.children[2].checkStaticErrorsAux(stack)
 
@@ -654,5 +683,3 @@ class BlockNode(Node):
                 return child1 and child2
         else:
             return self.children[0].checkStaticErrorsAux(stack)
-        
-
