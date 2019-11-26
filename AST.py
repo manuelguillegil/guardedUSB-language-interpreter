@@ -395,6 +395,14 @@ class Node:
                     self.children[1].setValue("BoolExp")
                     return True
             else:
+                #Este trozo de código permite la inicialización de arreglos de longitud 1
+                if tipo.getLength() == 1:
+                    if self.children[1].children[0].checkArithmeticExp(stack, True):
+                        newNode = Node("ArrayOp", "ArrElementInit", self.children[1].children)
+                        self.children[1].children = [newNode]
+                        self.children[1].setValue("ArrayExp")
+                        return True
+
                 if self.children[1].children[0].checkArrayExp(stack, self.children[0].getValue()):
                     self.children[1].setValue("ArrayExp")
                     return True
