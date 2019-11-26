@@ -206,7 +206,7 @@ def p_For(p):
 
 def p_In(p):
     '''In : TkId TkIn ExpAux TkTo ExpAux'''
-    p[0] = ForNode("Ident", p[1], True, [p[3], p[5]], p[1])
+    p[0] = ForNode("Ident", p[1], True, [Node("Exp", "Exp", [p[3]]), Node("Exp", "Exp", [p[5]])], p[1])
 
 def p_ExpAux(p):
     '''ExpAux  : ExpAux TkOpenPar ExpAux TkTwoPoints ExpAux TkClosePar
@@ -269,7 +269,7 @@ def p_ExpAux(p):
                 p_error(p[2])
         elif len(p) == 5:
             if p[2] == '[':
-                p[0] = Node("ArrayOp", "ArrConsult", [p[1],p[3]])
+                p[0] = Node("ArrayOp", "ArrConsult", [p[1], Node("Exp", "Exp", [p[3]])])
             else:
                 if p[1] == '-':
                     p[0] = Node("UnaryMinus", "UnaryMinus", [p[3]])
@@ -311,7 +311,7 @@ def p_AbsValue(p):
             p[0] = Node("Ident", p[1])
 
 def p_error(p):
-    print("Syntax error in input")
+    print("Error sintático en el archivo de entrada")
     print(p)
     sys.exit()
 

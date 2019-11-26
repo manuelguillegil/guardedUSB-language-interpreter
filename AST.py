@@ -62,9 +62,8 @@ class ArrayInfo:
         return self.length
 
 
-#Esta clase es la que representa la tabla de símbolos de GuardedUSB. Su único atributo es un diccionario, sin embargo se
-#envolvió el mismo dentro de una clase para agruparlo con una serie de métodos que permiten la construcción de la tabla sin
-#errores , así como otras funciones que son útiles a lo largo de la verificación de errores estáticos
+#Esta clase es la que representa la tabla de símbolos de GuardedUSB. Contiene el diccionario donde se almacenan los símbolos
+#de la tabla y posee un atributo que indica si la tabla usada es la que almacena la variable de control de un ciclo for
 class Symbol_Table:
     def __init__(self, isFor):
         self.table ={}
@@ -181,16 +180,6 @@ class Node:
                 return value
         return value
 
-    #Dada la pila que almacena las variables de control de ciclos for sin cerrar, verifica que el identificador asocaido 
-    # al nodo self no sea una de estas variable de control.
-    #Retorna: True si el identificador no se corresponde a ninguna variable de control, false en caso contrario
-    # def searchForTables(self, symbolForTableStack):
-    #     for i in range(len(symbolForTableStack)):
-    #         value = symbolForTableStack[i].getValue(self.value)
-    #         if value is not None:
-    #             return False
-    #     return True
-
     #Verifica si un identificador es de un tipo determinado
     # Parámetros:
     # tipo: Tipo del cual se espera sea la variable
@@ -259,24 +248,6 @@ class Node:
     # de dar un mensaje de error y abortar la ejecución
     def checkArrayAsig(self, stack):
         return self.children[1].checkArithmeticExp(stack) and self.children[2].checkArithmeticExp(stack)
-
-    #Verifica si la operación de consulta de arreglos es semánticamente válida
-    # Parámetros:
-    # stack: Pila de tablas de símbolos
-    # Retorna: True si las expresiones dentro de la consulta son semánticamente correctas y si la consulta se aplica sobre
-    # un identificador que represente a un array
-    # Si esta función o alguna de las funciones que llama detecta un error semántico muestra un mensaje de error y aborta
-    #la ejecución del programa
-    def checkArrayConsult(self, stack):
-        if self.children[0].category == "Ident":
-            if self.children[0].checkArrayIdent(stack):
-                return self.children[1].checkArithmeticExp(stack)
-        elif self.children[0].category == "ArrayOp" and self.children[0].value == "ArrayAsig":
-            if self.children[0].checkArrayAsig(stack):
-                return self.children[0].checkArrayConsult(stack)
-        else:
-            print("Error: Se está aplicando la operación consulta a algo que no es un arreglo")
-            sys.exit()
 
     #Verifica que la longitud de los elementos utilizados para inicializar un arreglo coincidan con la longitud
     #del arreglo según su declaración
@@ -481,7 +452,7 @@ class Node:
         elif self.category == "Function":
             return self.checkFunction(stack, self.value)
         elif self.category == "ArrayOp" and self.value == "ArrConsult":
-            return self.checkArrayConsult(stack)
+            return self.children[0].checkArrayExpIndependent(stack) and self.children[1].checkArithmeticExp(stack)
         elif self.category == "Exp":
             if self.children[0].checkArithmeticExp(stack):
                 self.value = "ArithExp"
@@ -522,10 +493,10 @@ class Node:
                 print("Error: Se está utilizando operador " + self.value + ", que no es para elementos de tipo array")
                 sys.exit()
 
-    def checkArrayExpInString(self, stack):
+    def checkArrayExpIndependent(self, stack):
         if self.category == "ArrayOp" and self.getValue() == "ArrayAsig":
             if self.checkArrayAsig(stack):
-                return self.children[0].checkArrayExpInString(stack)
+                return self.children[0].checkArrayExpIndependent(stack)
         elif self.category == "Ident":
             return self.checkArrayIdent(stack)
 
@@ -537,7 +508,7 @@ class Node:
             elif self.children[0].checkBoolExp(stack, True):
                 self.setValue("BoolExp")
                 return True
-            elif self.children[0].checkArrayExpInString(stack):
+            elif self.children[0].checkArrayExpIndependent(stack):
                 self.setValue("ArrayExp")
                 return True
         else:
@@ -552,10 +523,11 @@ class Node:
 
     def checkFor(self, stack):
         #Que revise el rango, falta eso
-        stack.insert(0, self.children[0].children[0].symbol_table)  #Insertamos la nueva tabla de símbolos
-        if self.children[1].checkStaticErrorsAux(stack): ## Chequeamos los errores estáticos del ProgramBlock que contiene el For
-            stack.pop(0) #Cuando termino de ejecutar el for desempilo la variable de control
-            return True
+        stack.insert(0, self.children[0].children[0].symbol_table)  #Insertamos la nueva tabla de 
+        if self.children[0].children[0].children[0].checkArithmeticExp(stack) and self.children[0].children[0].children[1].checkArithmeticExp(stack):
+            if self.children[1].checkStaticErrorsAux(stack): ## Chequeamos los errores estáticos del ProgramBlock que contiene el For
+                stack.pop(0) #Cuando termino de ejecutar el for desempilo la variable de control
+                return True
 
     def checkGuards(self, stack):
         if self.children[0].children[0].checkBoolExp(stack): ## Si la expresión corresponde con un bool, entonces seguimos

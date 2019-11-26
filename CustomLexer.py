@@ -37,7 +37,6 @@ class CustomLexer(object):
         'to':'TkTo',
         'rof':'TkRof',
         'read':'Tkread',
-        'count':'TkCount',
         'atoi':'TkAtoi',
         'size':'TkSize',
         'max':'TkMax',
