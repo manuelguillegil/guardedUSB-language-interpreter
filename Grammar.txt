@@ -1,35 +1,36 @@
+<Start> -> <ProgramBlock>
+
 <ProgramBlock> -> |[ <declaracion> <instrucciones> ]|
 			   -> |[ <instruccion> ]|
 
 <Declaracion> -> declare <DeclareLines>
 
-<DeclareLines> -> <varDeclaration>; <declareLines>
+<DeclareLines> -> <declareLines>; <varDeclaration>
 			   -> <varDeclaration>
 
 <VarDeclaration> -> <MultipleTypeDeclaration>
 				 -> <SingleTypeDeclaration>
 
-<MultipleTypeDeclaration> -> TkId , <InnerDelaration> , <Type>
+<MultipleTypeDeclaration> -> TkId , <MultipleTypeDeclaration> , <Type>
+						  -> TkId : <Type>
 
-<InnerDeclaration> -> TkId , <InnerDelaration> , <Type>
-				   -> TkId : <Type>
-
-<SingleTypeDeclaration> -> <IdList> : <Type>
+<SingleTypeDeclaration> -> <TkId> , <SingleTypeDeclaration>
+						-> <TkId> : <Type>
 
 <Type> -> TkBool
-       -> TkInt
-       -> array[TkInt..TkInt]
+       -> TkNum
+       -> array[TkNum..TkNum]
+	   -> array[-TkNum..TkNum]
+	   -> array[-TkNum..-TkNum]
 
-<IdList> -> <IdList> , TkId
-		 -> TkId
-
-NOTA: <InnerDeclaration> puede parecer que confunde, pero en realidad evita que haya ambiguedad entre <MultipleTypeDeclaration> y
-<SingleTypeDeclaration> para los casos en que se declara una única variable
-
-<instrucciones> -> <instruccion> ; <instrucciones>
+<instrucciones> -> <instruccion> ; <instruccionesSecuencia>
 				-> <instruccion>
 
+<instruccionesSecuencia> -> ; <instruccion> <instruccionesSecuencia>
+						 -> ; <intruccion>
+
 <instruccion> -> <Asignacion>
+		  -> <IfDo>
 	      -> <Ciclo>
 	      -> <Seleccion>
 	      -> <Entrada>
@@ -38,42 +39,65 @@ NOTA: <InnerDeclaration> puede parecer que confunde, pero en realidad evita que 
 
 <Asignacion> -> TkId := <Expresion>
 
+<IfDo> -> <TkIf> <Cuerpo> <TkFi>
+	   -> <TkDo> <Cuerpo> <TkOd>
+
+<Entrada> -> <TkRead> <TkId>
+
+<Salida> ->  <TkPrintln> <ExpAux>
+		 ->  <TkPrint> <ExpAux>
+		 ->  <TkPrintln> <TkString> || <Concat>
+		 ->  <TkPrint> <TkString> || <Concat>
+		 ->  <TkPrintln> <ExpAux> || <Concat>
+		 ->  <TkPrintln> <ExpAux> || <Concat>
+		 ->  <TkPrintln> <TkString>
+		 ->  <TkPrint> <TkString>
+
 <Expresion>  -> <ExpBool>
 			 -> <ExpInt>
 			 -> <ExpArray>
 
-(NoAsoc, ==, 0)
-(Left, +, 1)
-(Left, -, 1)
-(Left, /, 2)
-(Left, *, 2)
-(Left, %, 2)
-<ExpInt> -> <ExpInt> + <ExpInt>
-		 -> <ExpInt> - <ExpInt>
-		 -> <ExpInt> * <ExpInt>
-		 -> <ExpInt> / <ExpInt>
-		 -> <ExpInt> % <ExpInt>
-		 -> (<ExpInt>)
-		 -> <ValorInt>
+<Concat> -> <TkString> || <Concat>
+		 -> <ExpAux> || <Concat>
+		 -> <ExpAux>
 
-<ValorInt> -> - <ValorAbs>
-		   -> <ValorAbs>
+<Cuerpo> -> <ExpAux> --> <instrucciones> <GuardList>
+		 -> <ExpAux> --> <instrucciones>
 
-<ValorAbs> -> TkId
-		   -> TkNum
+<GuardList> -> <TkGuard> <ExpAux> --> <instrucciones> <GuardList>
+			-> <TkGuard> <ExpAux> --> <instrucciones>
 
-<ExpBool> -> <ExpBool> == <ExpBool>
-		  -> <ExpBool> != <ExpBool>
-		  -> <ExpBool> \/ <ExpBool>
-		  -> <ExpBool> /\ <ExpBool>
-		  -> !<ExpBool>
-		  -> <CompInt>
-		  -> True
-		  -> False
+<Ciclo> -> <TkFor> <In> --> <ProgramBlock> <TkRof>
 
-<Comp> -> <ExpInt> == <ExpInt>
-	   -> <ExpInt> != <ExpInt>
-	   -> <ExpInt> >= <ExpInt>
-	   -> <ExpInt> <= <ExpInt>
-	   -> <ExpInt> > <ExpInt>
-	   -> <ExpInt> < <ExpInt>
+<ExpAux> -> <ExpAux> ( <ExpAux> : <ExpAux> )
+         -> <ExpAux> = <ExpAux>
+		 -> <ExpAux> != <ExpAux>
+		 -> <ExpAux> > <ExpAux>
+		 -> <ExpAux> >= <ExpAux>
+		 -> <ExpAux> < <ExpAux>
+		 -> <ExpAux> <= <ExpAux>
+		 -> <ExpAux> \/ <ExpAux>
+		 -> <ExpAux> /\ <ExpAux>
+		 -> <ExpAux> + <ExpAux>
+		 -> <ExpAux> - <ExpAux>
+		 -> <ExpAux> * <ExpAux>
+		 -> <ExpAux> / <ExpAux>
+		 -> <ExpAux> % <ExpAux>
+		 -> ( <ExpAux> )
+		 -> <ExpAux> , <ExpAux>
+		 -> - ( <ExpAux> )
+		 -> <ExpAux> [ <ExpAux> ]
+		 -> <TkAtoi> ( <ExpAux> )
+		 -> <TkSize> ( <ExpAux> )
+		 -> <TkMax> ( <ExpAux> )
+		 -> <TkMin> ( <ExpAux> )
+		 -> <TkNot> <ExpAux>
+		 -> Value
+
+<Value> -> - <AbsValue>
+		-> <AbsValue>
+
+<AbsValue>  -> <TkNum>
+			-> <TkId>
+			-> <TkTrue>
+			-> <TkFalse>
