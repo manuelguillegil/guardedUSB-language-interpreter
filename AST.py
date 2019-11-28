@@ -22,7 +22,7 @@ def getTipo(value):
     if isinstance(value, ArrayInfo):
         return value.tipo
     else:
-        return value
+        return value[0]
 
 #Dado un objeto correspondiente a un identificador almacenado en la tabla de símbolos retorna el tipo del identificador.
 #En el caso de ser el objeto una instancia de ArrayInfo, simplemente retorna como tipo "array[m.. n]", donde m y n son los
@@ -34,7 +34,7 @@ def getTipoCompleto(value):
     if isinstance(value, ArrayInfo):
         return value.completeInfo()
     else:
-        return value
+        return value[0]
 
 #Permite almacenar información imortante de los arrays en la tabla de símbolos, como sus índice mínimo, índice máximo
 #y longitud
@@ -46,6 +46,7 @@ class ArrayInfo:
         self.li = int(info.split("..")[0])
         self.ls = int(info.split("..")[1].split("]")[0])
         self.length = self.ls - self.li + 1
+        self.value = [None for i in range(self.ls + 1)]
 
     #Verifica que el primer índice del arreglo sea menor o igual al último.
     #Retorna: True o False dependiendo de si se cumple o no la condición respectivamente
@@ -80,8 +81,9 @@ class Symbol_Table:
         if varList is not None:
             for i in range(len(varList)):
                 if self.table.get(varList[i][0]) is None:
+                    print(varList[i][0])
                     if varList[i][1] == "int" or varList[i][1] == "bool":
-                        self.table[varList[i][0]] = varList[i][1]
+                        self.table[varList[i][0]] = (varList[i][1], None)
                     else:
                         self.table[varList[i][0]] = ArrayInfo(varList[i][1].split("[")[1])
                         if not self.table[varList[i][0]].checkLimits():
@@ -96,7 +98,7 @@ class Symbol_Table:
     # var: Variable de control del ciclo for 
     def fillTableFor(self, var):
         if var is not None:
-            self.table[var] = var
+            self.table[var] = (var, None)
 
     # Imprime la tabla de símbolos
     # Parámetro: 
@@ -107,11 +109,8 @@ class Symbol_Table:
         iterator = iter(self.table)
         for key in iterator:
             value = self.table[key]
-            if isinstance(value, ArrayInfo):
-                tipoCompleto = value.completeInfo()
-                print(infoIndent + "variable: " + key + " | type: " +  tipoCompleto)
-            else:
-                print(infoIndent + "variable: " + key + " | type: " +  value)
+            tipoCompleto = value.completeInfo()
+            print(infoIndent + "variable: " + key + " | type: " +  tipoCompleto)
 
     #Dado un identificador, busca en la tabla de símbolos el objeto que representa en la tabla al tipo de dicho identificador
     #Parámetro
@@ -386,11 +385,11 @@ class Node:
     def checkAsig(self, stack):
         tipo = self.children[0].searchTables(stack)
         if tipo is not None:
-            if tipo == "int":
+            if getTipo(tipo) == "int":
                 if self.children[1].children[0].checkArithmeticExp(stack):
                     self.children[1].setValue("ArithExp")
                     return True
-            elif tipo == "bool":
+            elif getTipo(tipo) == "bool":
                 if self.children[1].children[0].checkBoolExp(stack):
                     self.children[1].setValue("BoolExp")
                     return True
