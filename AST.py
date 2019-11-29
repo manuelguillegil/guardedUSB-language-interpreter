@@ -36,6 +36,17 @@ def getTipoCompleto(value):
     else:
         return value[0]
 
+########## Borrar esta función si al final no se utiliza ####################
+def searchByName(varName, stack):
+    for i in range(len(stack)):
+        varType = stack[i].getValue(varName)
+        if varType is not None:
+            return varType
+    
+    print("Error inesperado en searchByName")
+    sys.exit()
+
+
 #Permite almacenar información imortante de los arrays en la tabla de símbolos, como sus índice mínimo, índice máximo
 #y longitud
 class ArrayInfo:
@@ -46,12 +57,15 @@ class ArrayInfo:
         self.li = int(info.split("..")[0])
         self.ls = int(info.split("..")[1].split("]")[0])
         self.length = self.ls - self.li + 1
-        self.value = [None for i in range(self.ls + 1)]
+        self.value = [None for i in range(self.ls - self.li + 1)]
 
     #Verifica que el primer índice del arreglo sea menor o igual al último.
     #Retorna: True o False dependiendo de si se cumple o no la condición respectivamente
     def checkLimits(self):
         return self.li <= self.ls
+
+    def checkIndex(self, index):
+        return self.li <= index <= self.ls
 
     #Retorna: Un string de la forma array[m..n] donde m y n son el primer y último índice del arreglo
     #de acuerdo a la declaración del mismo
@@ -62,6 +76,14 @@ class ArrayInfo:
     def getLength(self):
         return self.length
 
+    def getMax(self):
+        return self.ls
+
+    def getMin(self):
+        return self.li
+
+    def __getitem__(self, index):
+        return self.value[index]
 
 #Esta clase es la que representa la tabla de símbolos de GuardedUSB. Contiene el diccionario donde se almacenan los símbolos
 #de la tabla y posee un atributo que indica si la tabla usada es la que almacena la variable de control de un ciclo for
@@ -81,7 +103,6 @@ class Symbol_Table:
         if varList is not None:
             for i in range(len(varList)):
                 if self.table.get(varList[i][0]) is None:
-                    print(varList[i][0])
                     if varList[i][1] == "int" or varList[i][1] == "bool":
                         self.table[varList[i][0]] = (varList[i][1], None)
                     else:
@@ -109,7 +130,10 @@ class Symbol_Table:
         iterator = iter(self.table)
         for key in iterator:
             value = self.table[key]
-            tipoCompleto = value.completeInfo()
+            if isinstance(value, ArrayInfo):
+                tipoCompleto = value.completeInfo()
+            else:
+                tipoCompleto = getTipo(value)
             print(infoIndent + "variable: " + key + " | type: " +  tipoCompleto)
 
     #Dado un identificador, busca en la tabla de símbolos el objeto que representa en la tabla al tipo de dicho identificador
@@ -121,6 +145,9 @@ class Symbol_Table:
             return self.table[key]
         except:
             return None
+
+    def setValue(self, key, value):
+        self.table[key] = value
 
     #Retorna el diccionario asociado a la tabla de símbolos
     def getTable(self):
@@ -160,6 +187,12 @@ class Node:
         for i in range(len(self.children)):
             self.children[i].printTree(indent + " ")
 
+    ############################################################################################################
+
+    ################################ FUNCIONES DEL SEMANTIC ANALYZER ###########################################
+
+    ############################################################################################################
+
     #Dada una pila que contiene todas las tablas de símbolos que están dentro del alcance de una instrucción
     #(ordenadas de la tabla del bloque más interno al más externo) busca ordenadamente si el identificador 
     #asociado al nodo está en alguna de ellas
@@ -169,15 +202,15 @@ class Node:
     # El objeto asociado al identificador dentro de la tabla más interna en la que se encuentre dicho identificador
     # si el identificador está en una tabla. None si no
     def searchTables(self, symbolTableStack):
-        value = None
+        varType = None
         for i in range(len(symbolTableStack)):
-            value = symbolTableStack[i].getValue(self.value)
-            if value is not None:
+            varType = symbolTableStack[i].getValue(self.value)
+            if varType is not None:
                 if symbolTableStack[i].isFor:
                     print("Error: Se está intentando manipular una variable de control de ciclo for")
                     sys.exit()
-                return value
-        return value
+                return varType
+        return varType
 
     #Verifica si un identificador es de un tipo determinado
     # Parámetros:
@@ -218,7 +251,7 @@ class Node:
             return True
         else:
             if varTipo:
-                print("La variable " + self.value + " es de tipo " + varTipo + " pero debe ser de tipo array")
+                print("Error: La variable " + self.value + " es de tipo " + varTipo + " pero debe ser de tipo array")
                 sys.exit()
             else:
                 print("Error: Variable " + self.value + " no declarada")
@@ -454,8 +487,6 @@ class Node:
             return self.children[0].checkArithmeticExp(stack) and self.children[1].checkArithmeticExp(stack)
         elif self.category == "UnaryMinus":
             return self.children[0].checkArithmeticExp(stack)
-        elif self.category == "BinOp" and self.value == "Mod":
-            return (self.children[0].checkArithmeticExp(stack) and self.children[1].checkArithmeticExp(stack))
         elif self.category == "Function":
             return self.checkFunction(stack, self.value)
         elif self.category == "ArrayOp" and self.value == "ArrConsult":
@@ -472,7 +503,7 @@ class Node:
             else:
                 if cont:
                     return False
-                print("El literal " + self.getValue() + " no es de tipo int")
+                print("Error: El literal " + self.getValue() + " no es de tipo int")
                 sys.exit()
         else:
             if cont:
@@ -563,8 +594,6 @@ class Node:
             print("Error: La expresión " + self.children[0].value + " no es de tipo bool para una guardia del If")
             sys.exit()
 
-
-
     #Inicial el procedimiento de análisis semántico del AST
     def checkStaticErrors(self):
         tableStack = []
@@ -604,6 +633,107 @@ class Node:
             print("Error inesperado")
             print(self.category)
             sys.exit()
+
+    ############################################################################################################
+    
+    ################################################## EVALUADOR ###############################################
+    
+    ############################################################################################################
+
+    def setVarValue(self, symbolTableStack, newValue):
+        varType = None
+        for i in range(len(symbolTableStack)):
+            varType = symbolTableStack[i].getValue(self.value)
+            if newValue is not None:
+                symbolTableStack[i].setValue(self.value, (varType, newValue))
+            else:
+                print("Error en ejecución: setVarValue")
+                sys.exit()
+    
+    def findArray(self, stack):
+        if self.children[0].category == "Ident":
+            array = self.children[0].searchTables(stack)
+            index = self.children[1].evalArithmeticExp(stack)
+        else:
+            array = self.children[0].findArray()
+            index = self.children[1].evalArithmeticExp(stack)
+
+        if array.checkIndex(index):
+            return array
+        else:
+            print("Error de ejecución: Índice fuera de rango")
+            sys.exit()
+
+    def evalAsig(self, stack):
+        tipo = self.children[0].searchTables(stack)
+        if getTipo(tipo) == "int":
+            result = self.children[1].children[0].evalArithmeticExp(stack)
+            self.children[0].setVarValue(stack, result)
+            return True
+        elif getTipo(tipo) == "bool":
+            if self.children[1].children[0].checkBoolExp(stack):
+                return True
+        else:
+            #Este trozo de código permite la inicialización de arreglos de longitud 1
+            if tipo.getLength() == 1:
+                if self.children[1].children[0].checkArithmeticExp(stack, True):
+                    return True
+
+            if self.children[1].children[0].checkArrayExp(stack, self.children[0].getValue()):
+                return True
+
+    def evalArithmeticExp(self, stack):
+        if isinstance(self, BinOpNode):
+            op1 = self.children[0].evalArithmeticExp(stack)
+            op2 = self.children[1].evalArithmeticExp(stack)
+            return self.efectuateOperation(op1, op2)
+        elif isinstance(self, UnaryMinusNode):
+            op1 = self.children[0].evalArithmeticExp(stack)
+            return self.efectuateOperation(op1)
+        elif isinstance(self, FunctionNode):
+            op1 = self.findArray(stack)
+            return self.efectuateOperation(op1)
+        elif self.category == "ArrayOp" and self.value == "ArrConsult":
+            return self.children[0].checkArrayExpIndependent(stack) and self.children[1].checkArithmeticExp(stack)
+        elif self.category == "Exp":
+            if self.children[0].checkArithmeticExp(stack):
+                self.value = "ArithExp"
+                return True
+        elif self.category == "Ident":
+            return self.checkIdent("int", stack, cont)
+        elif self.category == "Literal":
+            if self.value != "true" and self.value != "false":
+                return True
+            else:
+                if cont:
+                    return False
+                print("Error: El literal " + self.getValue() + " no es de tipo int")
+                sys.exit()
+        else:
+            if cont:
+                return False
+            print("El operador " + self.value + " no es válido en esta expresión")
+            sys.exit()
+
+    def evaluator(self):
+        tableStack = []
+        return self.evaluatorAux(tableStack)
+
+    def evaluatorAux(self, stack):
+        if isinstance(self, BlockNode):
+            return self.evalBlock(stack)
+        elif self.category == "Asig":
+            return self.evalAsig(stack)
+
+
+
+
+
+    ############################################################################################################
+
+    ################################################# GET Y SET ################################################
+
+    ############################################################################################################
 
     ## Retorna el atributo value de un Node
     def getValue(self):
@@ -682,3 +812,72 @@ class BlockNode(Node):
                 return child1 and child2
         else:
             return self.children[0].checkStaticErrorsAux(stack)
+
+    def evalBlock(self, stack):
+        if bool(self.symbol_table.getTable()):
+            stack.insert(0, self.symbol_table)
+            if (len(self.children) == 2):
+                return self.children[1].evaluatorAux(stack)
+            else:
+                stackLength = len(stack)
+                child1 = self.children[1].evaluatorAux(stack)
+                while len(stack) != stackLength:
+                    stack.pop(0)
+                child2 = self.children[2].evaluatorAux(stack)
+
+                stack.pop(0)
+
+                return child1 and child2
+        else:
+            return self.children[0].evaluatorAux(stack)
+
+class BinOpNode(Node):
+
+    def __init__(self, category, value, children=None):
+        super().__init__(category, value, children)
+        self.result = None
+
+    def efectuateOperation(self, op1, op2):
+        if self.getValue() == "+":
+            self.result = op1 + op2
+        elif self.getValue() == "-":
+            self.result = op1 - op2
+        elif self.getValue() == "*":
+            self.result = op1 * op2
+        elif self.getValue() == "/":
+            self.result = op1 // op2
+        elif self.getValue() == "%":
+            self.result = op1 % op2
+
+        return self.result
+        
+class UnaryMinusNode(Node):
+
+    def __init__(self, category, value, children=None):
+        super().__init__(category, value, children)
+        self.result = None
+
+    def efectuateOperation(self, op):
+        self.result = -1 * op
+        return self.result
+
+class FunctionNode(Node):
+    def __init__(self, category, value, children=None):
+        super().__init__(category, value, children)
+        self.result = None
+
+    def efectuateOperation(self, op):
+        if op[0] is None:
+            print("Error: Se está intentando aplicar función sobre arreglo no inicializado")
+            sys.exit()
+
+        if self.value == "atoi":
+            self.result = op[0]
+        elif self.value == "max":
+            self.result = op.getMax()
+        elif self.value == "min":
+            self.result = op.getMin()
+        else:
+            self.result = op.getLength()
+
+        return self.result

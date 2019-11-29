@@ -8,7 +8,7 @@
 #Actualización: YA arreglé el detalle de la gramática
 
 from CustomLexer import CustomLexer
-from AST import Node, DecNode, BlockNode, ForNode
+from AST import Node, DecNode, BlockNode, ForNode, BinOpNode, UnaryMinusNode, FunctionNode
 import ply.yacc as yacc
 import re
 import sys
@@ -254,15 +254,15 @@ def p_ExpAux(p):
             elif p[2] == '/\\':
                 p[0] = Node("BoolOp", "And", [p[1], p[3]])
             elif p[2] == '+':
-                p[0] = Node("AritOp", "Plus", [p[1], p[3]])
+                p[0] = BinOpNode("AritOp", "Plus", [p[1], p[3]])
             elif p[2] == '-':
-                p[0] = Node("AritOp", "Minus", [p[1], p[3]])
+                p[0] = BinOpNode("AritOp", "Minus", [p[1], p[3]])
             elif p[2] == '*':
-                p[0] = Node("AritOp", "Mult", [p[1], p[3]])
+                p[0] = BinOpNode("AritOp", "Mult", [p[1], p[3]])
             elif p[2] == '/':
-                p[0] = Node("AritOp", "Div", [p[1], p[3]])
+                p[0] = BinOpNode("AritOp", "Div", [p[1], p[3]])
             elif p[2] == '%':
-                p[0] = Node("AritOp", "Mod", [p[1], p[3]])
+                p[0] = BinOpNode("AritOp", "Mod", [p[1], p[3]])
             elif p[2] == ',':
                 p[0] = Node("ArrayOp", "ArrElementInit", [p[1], p[3]])
             else:
@@ -272,9 +272,9 @@ def p_ExpAux(p):
                 p[0] = Node("ArrayOp", "ArrConsult", [p[1], Node("Exp", "Exp", [p[3]])])
             else:
                 if p[1] == '-':
-                    p[0] = Node("UnaryMinus", "UnaryMinus", [p[3]])
+                    p[0] = UnaryMinusNode("UnaryMinus", "UnaryMinus", [p[3]])
                 else:
-                    p[0] = Node("Function", p[1], [p[3]])
+                    p[0] = FunctionNode("Function", p[1], [p[3]])
         elif len(p) == 7:
             p[0] = Node("ArrayOp", "ArrayAsig", [p[1], p[3], p[5]])
         elif len(p) == 3:
@@ -291,7 +291,7 @@ def p_Value(p):
              | AbsValue'''
     #print("Regla18")
     if len(p) == 3:
-        p[0] = Node("UnaryMinus", "UnaryMinus", [p[2]])
+        p[0] = UnaryMinusNode("UnaryMinus", "UnaryMinus", [p[2]])
     else:
         #print(p[1].value)
         p[0] = p[1]
