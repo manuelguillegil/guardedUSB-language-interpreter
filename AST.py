@@ -91,6 +91,9 @@ class ArrayInfo:
     def getMin(self):
         return self.li
 
+    def getArrayItems(self):
+        return self.value
+
     def __getitem__(self, index):
         return self.value[self.li - index]
 
@@ -658,10 +661,21 @@ class Node:
         varType = None
         for i in range(len(symbolTableStack)):
             varType = symbolTableStack[i].getValue(self.value)
-            if newValue is not None:
+            if varType is not None:
                 symbolTableStack[i].setValue(self.value, (varType[0], newValue))
             else:
                 print("Error en ejecución: setVarValue")
+                sys.exit()
+
+    #TERMINAR
+    def setArrayValue(self, symbolTableStack, newValue):
+        varType = None
+        for i in range(len(symbolTableStack)):
+            varType = symbolTableStack[i].getValue(self.value)
+            if varType is not None:
+                varType.copyArray(newValue)
+            else:
+                print("Error en ejecución: setArrayValue")
                 sys.exit()
 
     #Retorna el valor de una variable. Si no ha sido inicializada, devuelve error
@@ -674,14 +688,18 @@ class Node:
                 print("Error: Variable " + self.value + " no inicializada")
                 sys.exit()
         else: #arrays
-            pass #to do
+            if idValue[idValue.getMin()] is not None:
+                return idValue.getArrayItems()
+            else:
+                print("Error: Variable " + self.value + " no inicializada")
+                sys.exit()
     
     #Esta función se utiliza para verificar sobre qué arreglo debemos llamar la función embebida y 
     #si tiene asignaciones, que ninguna se haga fuera del rango del arreglo
     def findArray(self, stack):
         if self.children[0].category == "Ident":
             array = self.children[0].searchTables(stack)
-            if array[0] == None:
+            if array[array.getMin()] == None:
                 print("Error: El arreglo " + self.getValue() + " no ha sido inicializado")
                 sys.exit()
         else:
@@ -705,7 +723,7 @@ class Node:
         if self.children[0].category == "Ident":
             array = self.children[0].searchTables(stack)
             copy = ArrayInfo(array)
-            if copy[0] == None: ##Si el arreglo original no ha sido inicializado es un error
+            if copy[copy.getMin()] == None: ##Si el arreglo original no ha sido inicializado es un error
                 print("Error: El arreglo " + self.getValue() + " no ha sido inicializado")
                 sys.exit()
         else:
@@ -724,6 +742,15 @@ class Node:
         else:
             return copy
 
+    def InitializeArray(self, stack, newArray):
+        element = self.children[0].evalArithmeticExp(stack)
+        newArray.append(element)
+        if len(self.children) > 1:
+            if self.children[1].getValue() == "ArrElementInit":
+                self.InitializeArray(stack, newArray)
+            else:
+                element = self.children[1].evalArithmeticExp(stack)
+                newArray.append(element)
 
     def evalAsig(self, stack):
         tipo = self.children[0].searchTables(stack)
@@ -737,13 +764,8 @@ class Node:
             if self.children[1].children[0].checkBoolExp(stack):
                 return True
         else:
-            #Este trozo de código permite la inicialización de arreglos de longitud 1
-            if tipo.getLength() == 1:
-                if self.children[1].children[0].checkArithmeticExp(stack, True):
-                    return True
-
-            if self.children[1].children[0].checkArrayExp(stack, self.children[0].getValue()):
-                return True
+            result = self.children[1].children[0].evalArrayExp(stack)
+            self.children[0].setArrayValue(stack, result)
 
     def evalArithmeticExp(self, stack):
         if isinstance(self, BinOpNode):
@@ -773,6 +795,18 @@ class Node:
         else:
             print("El operador " + self.value + " no es válido en esta expresión")
             sys.exit()
+
+    def evalArrayExp(self, stack):
+        if self.category == "ArrayOp":
+            if self.value == "ArrayAsig":
+                return self.arrayValue(stack).getArrayItems()
+            elif self.value == "ArrElementInit":
+                newArray = []
+                self.InitializeArray(stack, newArray)
+                return newArray
+        else:
+            if self.category == "Ident":
+                return self.checkInitIdent(stack).getArrayItems()
 
     def evaluator(self):
         tableStack = []
