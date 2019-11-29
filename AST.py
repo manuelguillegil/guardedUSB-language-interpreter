@@ -53,11 +53,20 @@ class ArrayInfo:
     
     #Constructor de clase. info es un str de la forma m..n] con m y n literales enteros
     def __init__(self, info):
-        self.tipo = "array"
-        self.li = int(info.split("..")[0])
-        self.ls = int(info.split("..")[1].split("]")[0])
-        self.length = self.ls - self.li + 1
-        self.value = [None for i in range(self.ls - self.li + 1)]
+        if type(info) is str:
+            self.tipo = "array"
+            self.li = int(info.split("..")[0])
+            self.ls = int(info.split("..")[1].split("]")[0])
+            self.length = self.ls - self.li + 1
+            self.value = [None for i in range(self.ls - self.li + 1)]
+        elif isinstance(info, ArrayInfo):
+            self.tipo = "array"
+            self.li = info.getMin()
+            self.ls = info.getMax()
+            self.length = info.getLength()
+            self.value = [i for i in info.value]
+        else:
+            print("Error en la creación de estructura array")
 
     #Verifica que el primer índice del arreglo sea menor o igual al último.
     #Retorna: True o False dependiendo de si se cumple o no la condición respectivamente
@@ -83,7 +92,11 @@ class ArrayInfo:
         return self.li
 
     def __getitem__(self, index):
-        return self.value[index]
+        return self.value[self.li - index]
+
+    def __setitem__(self, index, value):
+        realIndex = self.li - index
+        self.value[realIndex] = value
 
 #Esta clase es la que representa la tabla de símbolos de GuardedUSB. Contiene el diccionario donde se almacenan los símbolos
 #de la tabla y posee un atributo que indica si la tabla usada es la que almacena la variable de control de un ciclo for
@@ -640,34 +653,84 @@ class Node:
     
     ############################################################################################################
 
+    #Dada una variable, guarda su valor en la tabla
     def setVarValue(self, symbolTableStack, newValue):
         varType = None
         for i in range(len(symbolTableStack)):
             varType = symbolTableStack[i].getValue(self.value)
             if newValue is not None:
-                symbolTableStack[i].setValue(self.value, (varType, newValue))
+                symbolTableStack[i].setValue(self.value, (varType[0], newValue))
             else:
                 print("Error en ejecución: setVarValue")
                 sys.exit()
+
+    #Retorna el valor de una variable. Si no ha sido inicializada, devuelve error
+    def checkInitIdent(self, stack):
+        idValue = self.searchTables(stack)
+        if idValue[0] == "int" or idValue[0] == "bool":
+            if idValue[1] is not None:
+                return idValue[1]
+            else:
+                print("Error: Variable " + self.value + " no inicializada")
+                sys.exit()
+        else: #arrays
+            pass #to do
     
+    #Esta función se utiliza para verificar sobre qué arreglo debemos llamar la función embebida y 
+    #si tiene asignaciones, que ninguna se haga fuera del rango del arreglo
     def findArray(self, stack):
         if self.children[0].category == "Ident":
             array = self.children[0].searchTables(stack)
-            index = self.children[1].evalArithmeticExp(stack)
+            if array[0] == None:
+                print("Error: El arreglo " + self.getValue() + " no ha sido inicializado")
+                sys.exit()
         else:
-            array = self.children[0].findArray()
+            array = self.children[0].findArray(stack)
+        
+        if len(self.children) > 1:
             index = self.children[1].evalArithmeticExp(stack)
 
-        if array.checkIndex(index):
-            return array
+            if array.checkIndex(index):
+                return array
+            else:
+                print("Error de ejecución: Índice fuera de rango")
+                sys.exit()
         else:
-            print("Error de ejecución: Índice fuera de rango")
-            sys.exit()
+            return array
+
+    #si se hace consulta sobre un arreglo, se calcula el arreglo que fue consultado, en caso de que incluya
+    #asignaciones. Si no incluye asignaciones, solo retona el valor almacenado del arreglo. Si el arreglo no incluye asignaciones
+    #devuelve el valor del arreglo
+    def arrayValue(self, stack):
+        if self.children[0].category == "Ident":
+            array = self.children[0].searchTables(stack)
+            copy = ArrayInfo(array)
+            if copy[0] == None: ##Si el arreglo original no ha sido inicializado es un error
+                print("Error: El arreglo " + self.getValue() + " no ha sido inicializado")
+                sys.exit()
+        else:
+            copy = self.children[0].arrayValue(stack)
+
+        index = self.children[1].evalArithmeticExp(stack)
+
+        if len(self.children > 1):
+            if copy.checkIndex(index):
+                value = self.children[2].evalArithmeticExp(stack)
+                copy[index] = value
+                return copy
+            else:
+                print("Error: Índice " + str(index) + " fuera del rango del arreglo")
+                sys.exit()
+        else:
+            return copy
+
 
     def evalAsig(self, stack):
         tipo = self.children[0].searchTables(stack)
         if getTipo(tipo) == "int":
             result = self.children[1].children[0].evalArithmeticExp(stack)
+            # print(self.children[0].getValue())
+            # print(result)
             self.children[0].setVarValue(stack, result)
             return True
         elif getTipo(tipo) == "bool":
@@ -694,24 +757,20 @@ class Node:
             op1 = self.findArray(stack)
             return self.efectuateOperation(op1)
         elif self.category == "ArrayOp" and self.value == "ArrConsult":
-            return self.children[0].checkArrayExpIndependent(stack) and self.children[1].checkArithmeticExp(stack)
-        elif self.category == "Exp":
-            if self.children[0].checkArithmeticExp(stack):
-                self.value = "ArithExp"
-                return True
-        elif self.category == "Ident":
-            return self.checkIdent("int", stack, cont)
-        elif self.category == "Literal":
-            if self.value != "true" and self.value != "false":
-                return True
+            op1 = self.arrayValue(stack)
+            op2 = self.children[1].evalArithmeticExp(stack)
+            if op1.checkIndex(op2):
+                return op1[op2]
             else:
-                if cont:
-                    return False
-                print("Error: El literal " + self.getValue() + " no es de tipo int")
+                print("Error de ejecución: Índice fuera de rango en operación consulta")
                 sys.exit()
+        elif self.category == "Exp":
+            return self.children[0].evalArithmeticExp(stack)
+        elif self.category == "Ident":
+            return self.checkInitIdent(stack)
+        elif self.category == "Literal":
+            return self.getValue()
         else:
-            if cont:
-                return False
             print("El operador " + self.value + " no es válido en esta expresión")
             sys.exit()
 
@@ -724,6 +783,11 @@ class Node:
             return self.evalBlock(stack)
         elif self.category == "Asig":
             return self.evalAsig(stack)
+        elif self.category == "InstSequence":
+            if len(self.children) == 2:
+                return all([self.children[0].evaluatorAux(stack), self.children[1].evaluatorAux(stack)])
+            else:
+                return self.children[0].evaluatorAux(stack)
 
 
 
@@ -828,6 +892,7 @@ class BlockNode(Node):
                 stack.pop(0)
 
                 return child1 and child2
+
         else:
             return self.children[0].evaluatorAux(stack)
 
@@ -838,15 +903,15 @@ class BinOpNode(Node):
         self.result = None
 
     def efectuateOperation(self, op1, op2):
-        if self.getValue() == "+":
+        if self.getValue() == "Plus":
             self.result = op1 + op2
-        elif self.getValue() == "-":
+        elif self.getValue() == "Minus":
             self.result = op1 - op2
-        elif self.getValue() == "*":
+        elif self.getValue() == "Mult":
             self.result = op1 * op2
-        elif self.getValue() == "/":
+        elif self.getValue() == "Div":
             self.result = op1 // op2
-        elif self.getValue() == "%":
+        elif self.getValue() == "Mod":
             self.result = op1 % op2
 
         return self.result
@@ -867,12 +932,8 @@ class FunctionNode(Node):
         self.result = None
 
     def efectuateOperation(self, op):
-        if op[0] is None:
-            print("Error: Se está intentando aplicar función sobre arreglo no inicializado")
-            sys.exit()
-
         if self.value == "atoi":
-            self.result = op[0]
+            self.result = op[op.getMin()]
         elif self.value == "max":
             self.result = op.getMax()
         elif self.value == "min":
