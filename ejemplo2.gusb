@@ -1,0 +1,9 @@
+|[
+    declare
+    x, y, z, p, i : int, int, array[0..2], int, int
+    for i in 2 to 10 -->
+        |[
+            x := 2
+        ]|
+    rof
+]|

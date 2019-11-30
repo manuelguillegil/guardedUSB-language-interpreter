@@ -770,6 +770,22 @@ class Node:
         else:
             item = input("Introduzca una variable de tipo") ##No he terminado, to do
 
+    def evalFor(self, stack, numIteraccion):
+        iterator = numIteraccion
+        start = self.children[0].children[0].children[0].evalArithmeticExp(stack)
+        end = self.children[0].children[0].children[1].evalArithmeticExp(stack)
+        totalNumIteration = end - start
+
+        if (numIteraccion == totalNumIteration):
+            return True
+            totalNumIteration = end - start
+
+        ## Este es el Programblock
+        self.children[1].evaluatorAux(stack)
+        iterator = iterator + 1
+        self.evalFor(stack, iterator) ## Creamos otro ciclo del For
+        
+
     def evalAsig(self, stack):
         tipo = self.children[0].searchTables(stack)
         if getTipo(tipo) == "int":
@@ -872,6 +888,8 @@ class Node:
                 return self.children[0].evaluatorAux(stack)
         elif self.category == "Read":
             return self.evalRead(stack)
+        elif self.category == "For":
+            self.evalFor(stack, 0)
 
 
 
@@ -930,7 +948,8 @@ class ForNode(Node):
         super().__init__(category, value, children)
         self.symbol_table = Symbol_Table(isFor)
         self.symbol_table.fillTableFor(var)
-
+        self.numIteraccion = 0
+        
 ### Creamos un objeto llamado BlockNode el cual tendrá de herencia al objeto Node, pero que nos servirá para añadir información adicional
 ## y crear una distinción con los demás nodos. Tendrá una tabla de simbolo de las variables declaradas el bloque correspondiente.
 class BlockNode(Node):
