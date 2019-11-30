@@ -95,11 +95,15 @@ class ArrayInfo:
         return self.value
 
     def __getitem__(self, index):
-        return self.value[self.li - index]
+        return self.value[abs(self.li - index)]
 
     def __setitem__(self, index, value):
-        realIndex = self.li - index
+        realIndex = abs(self.li - index)
         self.value[realIndex] = value
+
+    def copyArray(self, newArray):
+        for i in range(self.length):
+            self.value[i] = newArray[i]
 
 #Esta clase es la que representa la tabla de símbolos de GuardedUSB. Contiene el diccionario donde se almacenan los símbolos
 #de la tabla y posee un atributo que indica si la tabla usada es la que almacena la variable de control de un ciclo for
@@ -636,7 +640,7 @@ class Node:
         elif self.category == "if" or self.category == "do":
             return self.children[0].checkStaticErrorsAux(stack)
         elif self.category == "Read":
-            return self.searchTables(stack) is not None
+            return self.children[0].searchTables(stack) is not None
         elif self.category == "print" or self.category == "println":
             if len(self.children) == 1:
                 self.children[0].checkStringContent(stack)
@@ -667,13 +671,13 @@ class Node:
                 print("Error en ejecución: setVarValue")
                 sys.exit()
 
-    #TERMINAR
     def setArrayValue(self, symbolTableStack, newValue):
         varType = None
         for i in range(len(symbolTableStack)):
             varType = symbolTableStack[i].getValue(self.value)
             if varType is not None:
                 varType.copyArray(newValue)
+                symbolTableStack[i].setValue(self.value, varType)
             else:
                 print("Error en ejecución: setArrayValue")
                 sys.exit()
@@ -705,7 +709,7 @@ class Node:
         else:
             array = self.children[0].findArray(stack)
         
-        if len(self.children) > 1:
+        if len(self.children) == 3:
             index = self.children[1].evalArithmeticExp(stack)
 
             if array.checkIndex(index):
@@ -723,7 +727,7 @@ class Node:
         if self.children[0].category == "Ident":
             array = self.children[0].searchTables(stack)
             copy = ArrayInfo(array)
-            if copy[copy.getMin()] == None: ##Si el arreglo original no ha sido inicializado es un error
+            if copy[copy.getMin()] is None: ##Si el arreglo original no ha sido inicializado es un error
                 print("Error: El arreglo " + self.getValue() + " no ha sido inicializado")
                 sys.exit()
         else:
@@ -731,7 +735,7 @@ class Node:
 
         index = self.children[1].evalArithmeticExp(stack)
 
-        if len(self.children > 1):
+        if len(self.children) == 3:
             if copy.checkIndex(index):
                 value = self.children[2].evalArithmeticExp(stack)
                 copy[index] = value
@@ -747,17 +751,31 @@ class Node:
         newArray.append(element)
         if len(self.children) > 1:
             if self.children[1].getValue() == "ArrElementInit":
-                self.InitializeArray(stack, newArray)
+                self.children[1].InitializeArray(stack, newArray)
             else:
                 element = self.children[1].evalArithmeticExp(stack)
                 newArray.append(element)
+
+    def evalRead(self, stack):
+        tipo = self.children[0].searchTables(stack)
+        if isinstance(tipo, ArrayInfo):
+            arrayItems = input("Introduzca arreglo de longitud " + str(tipo.getLength()) + ": ")
+            items = arrayItems.split(",")
+            while True:
+                try:
+                    newArray = [int(i) for i in items]
+                    break
+                except:
+                    print("Error: Arreglo introducido en el formato incorrecto")
+        else:
+            item = input("Introduzca una variable de tipo") ##No he terminado, to do
 
     def evalAsig(self, stack):
         tipo = self.children[0].searchTables(stack)
         if getTipo(tipo) == "int":
             result = self.children[1].children[0].evalArithmeticExp(stack)
-            # print(self.children[0].getValue())
-            # print(result)
+            print(self.children[0].getValue())
+            print(result)
             self.children[0].setVarValue(stack, result)
             return True
         elif getTipo(tipo) == "bool":
@@ -766,6 +784,9 @@ class Node:
         else:
             result = self.children[1].children[0].evalArrayExp(stack)
             self.children[0].setArrayValue(stack, result)
+            print(self.children[0].getValue())
+            print(result)
+            return True
 
     def evalArithmeticExp(self, stack):
         if isinstance(self, BinOpNode):
@@ -822,6 +843,9 @@ class Node:
                 return all([self.children[0].evaluatorAux(stack), self.children[1].evaluatorAux(stack)])
             else:
                 return self.children[0].evaluatorAux(stack)
+        elif self.category == "Read":
+            return self.evalRead(stack)
+
 
 
 
