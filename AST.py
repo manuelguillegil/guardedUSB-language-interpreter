@@ -780,6 +780,10 @@ class Node:
             return True
         elif getTipo(tipo) == "bool":
             if self.children[1].children[0].checkBoolExp(stack):
+                result = self.children[1].children[0].evalBoolExp(stack)
+                self.children[0].setArrayValue(stack, result)
+                print(self.children[0].getValue())
+                print(result)
                 return True
         else:
             result = self.children[1].children[0].evalArrayExp(stack)
@@ -809,6 +813,29 @@ class Node:
                 sys.exit()
         elif self.category == "Exp":
             return self.children[0].evalArithmeticExp(stack)
+        elif self.category == "Ident":
+            return self.checkInitIdent(stack)
+        elif self.category == "Literal":
+            return self.getValue()
+        else:
+            print("El operador " + self.value + " no es válido en esta expresión")
+            sys.exit()
+
+    def evalBoolExp(self, stack):
+        if isinstance(self, BinOpRelNode):
+            op1 = self.children[0].evalBoolExp(stack)
+            op2 = self.children[1].evalBoolExp(stack)
+            return self.efectuateOperation(op1, op2)
+        if isinstance(self, BinOpBoolNode):
+            op1 = self.children[0].evalBoolExp(stack)
+            op2 = self.children[1].evalBoolExp(stack)
+            return self.efectuateOperation(op1, op2)
+        if isinstance(self, BinOpEqualNode):
+            op1 = self.children[0].evalBoolExp(stack)
+            op2 = self.children[1].evalBoolExp(stack)
+            return self.efectuateOperation(op1, op2)
+        elif self.category == "Exp":
+            return self.children[0].evalBoolExp(stack)
         elif self.category == "Ident":
             return self.checkInitIdent(stack)
         elif self.category == "Literal":
@@ -998,5 +1025,51 @@ class FunctionNode(Node):
             self.result = op.getMin()
         else:
             self.result = op.getLength()
+
+        return self.result
+
+class BinOpRelNode(Node):
+
+    def __init__(self, category, value, children=None):
+        super().__init__(category, value, children)
+        self.result = None
+
+    def efectuateOperation(self, op1, op2):
+        if self.getValue() == "Geq":
+            self.result = (op1 > op2 or op1 == op2)
+        elif self.getValue() == "Greater":
+            self.result = op1 > op2
+        elif self.getValue() == "Leq":
+            self.result = (op1 < op2 or op1 == op2)
+        elif self.getValue() == "Less":
+            self.result = op1 < op2
+
+        return self.result
+
+class BinOpBoolNode(Node):
+
+    def __init__(self, category, value, children=None):
+        super().__init__(category, value, children)
+        self.result = None
+
+    def efectuateOperation(self, op1, op2):
+        if self.getValue() == "Or":
+            self.result = op1 or op2
+        elif self.getValue() == "And":
+            self.result = op1 and op2
+
+        return self.result
+
+class BinOpEqualNode(Node):
+
+    def __init__(self, category, value, children=None):
+        super().__init__(category, value, children)
+        self.result = None
+
+    def efectuateOperation(self, op1, op2):
+        if self.getValue() == "Equals":
+            self.result = op1 == op2
+        elif self.getValue() == "Nequals":
+            self.result = op1 != op2
 
         return self.result

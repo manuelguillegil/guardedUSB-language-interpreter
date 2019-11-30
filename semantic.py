@@ -8,7 +8,7 @@
 #Actualización: YA arreglé el detalle de la gramática
 
 from CustomLexer import CustomLexer
-from AST import Node, DecNode, BlockNode, ForNode, BinOpNode, UnaryMinusNode, FunctionNode
+from AST import Node, DecNode, BlockNode, ForNode, BinOpNode, UnaryMinusNode, FunctionNode, BinOpRelNode, BinOpBoolNode, BinOpEqualNode
 import ply.yacc as yacc
 import re
 import sys
@@ -239,21 +239,21 @@ def p_ExpAux(p):
     if p[1] != '(':
         if len(p) == 4:
             if p[2] == '==':
-                p[0] = Node("BinOp", "Equals", [p[1], p[3]])
+                p[0] = BinOpEqualNode("BinOp", "Equals", [p[1], p[3]])
             elif p[2] == '!=':
-                p[0] = Node("BinOp", "Nequals", [p[1], p[3]])
+                p[0] = BinOpEqualNode("BinOp", "Nequals", [p[1], p[3]])
             elif p[2] == '>=':
-                p[0] = Node("RelOp", "Geq", [p[1], p[3]])
+                p[0] = BinOpRelNode("RelOp", "Geq", [p[1], p[3]])
             elif p[2] == '>':
-                p[0] = Node('RelOp', "Greater", [p[1], p[3]])
+                p[0] = BinOpRelNode('RelOp', "Greater", [p[1], p[3]])
             elif p[2] == '<=':
-                p[0] = Node("RelOp", "Leq", [p[1], p[3]])
+                p[0] = BinOpRelNode("RelOp", "Leq", [p[1], p[3]])
             elif p[2] == '<':
-                p[0] = Node('RelOp', "Less", [p[1], p[3]])
+                p[0] = BinOpRelNode('RelOp', "Less", [p[1], p[3]])
             elif p[2] == '\\/':
-                p[0] = Node("BoolOp", "Or", [p[1], p[3]])
+                p[0] = BinOpBoolNode("BoolOp", "Or", [p[1], p[3]])
             elif p[2] == '/\\':
-                p[0] = Node("BoolOp", "And", [p[1], p[3]])
+                p[0] = BinOpBoolNode("BoolOp", "And", [p[1], p[3]])
             elif p[2] == '+':
                 p[0] = BinOpNode("AritOp", "Plus", [p[1], p[3]])
             elif p[2] == '-':
