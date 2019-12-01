@@ -784,7 +784,34 @@ class Node:
         self.children[1].evaluatorAux(stack)
         iterator = iterator + 1
         self.evalFor(stack, iterator) ## Creamos otro ciclo del For
+
+    def evalPrintAux(self, stack):
+        self.buildPrint(self.evalPrint(stack) + self.children[1].evaluatorAux(stack))
+        if(self.category == 'print'):
+            self.print()
+        else:
+            self.println()
+        return True
+
+    def evalPrint(self, stack):
+        return self.children[0].evalStringContent(stack)
         
+    def evalStringContent(self, stack):
+        if self.category == "Exp":
+            if self.children[0].checkArithmeticExp(stack, True):
+                return str(self.children[0].evalArithmeticExp(stack))
+            elif self.children[0].checkBoolExp(stack, True):
+                return str(self.children[0].evalBoolExp(stack))
+            elif self.children[0].checkArrayExpIndependent(stack):
+                return str(self.children[0].evalArrayExp(stack))
+        else:
+            return str(self.children[0])
+
+    def evalConcat(self, stack):
+        if self.children[0].category == "Concat":
+            return self.children[0].children[0].evalStringContent(stack) + self.children[0].children[1].evalPrint(stack)
+        else:
+            return self.children[0].evalStringContent(stack)
 
     def evalAsig(self, stack):
         tipo = self.children[0].searchTables(stack)
@@ -890,6 +917,13 @@ class Node:
             return self.evalRead(stack)
         elif self.category == "For":
             self.evalFor(stack, 0)
+        elif self.category == "print" or self.category == "println":
+            if len(self.children) == 1:
+                self.evalPrint(stack)
+            else:
+                return self.evalPrintAux(stack)
+        elif self.category == "Concat":
+            return self.evalConcat(stack)
 
 
 
@@ -1092,3 +1126,27 @@ class BinOpEqualNode(Node):
             self.result = op1 != op2
 
         return self.result
+
+class PrintNode(Node):
+
+    def __init__(self, category, value, children=None):
+        super().__init__(category, value, children)
+        self.elementToPrint = ""
+
+    def buildPrint(self, newElement):
+        if(newElement != None):
+            self.elementToPrint = self.elementToPrint + newElement
+        else: 
+            print("Error construyendo el print")
+        
+    def println(self):
+        if(self.elementToPrint != None):
+            print(self.elementToPrint)
+        else: 
+            print("Lo que se quiere imprimir está vacío")
+
+    def print(self):
+        if(self.elementToPrint != None):
+            print(self.elementToPrint, end='')
+        else: 
+            print("Lo que se quiere imprimir está vacío")
