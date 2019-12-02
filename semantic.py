@@ -8,7 +8,7 @@
 #Actualización: YA arreglé el detalle de la gramática
 
 from CustomLexer import CustomLexer
-from AST import Node, DecNode, BlockNode, ForNode, BinOpNode, UnaryMinusNode, FunctionNode, BinOpRelNode, BinOpBoolNode, BinOpEqualNode
+from AST import Node, DecNode, BlockNode, ForNode, BinOpNode, UnaryMinusNode, FunctionNode, BinOpRelNode, BinOpBoolNode, BinOpEqualNode, BoolOpNotNode
 import ply.yacc as yacc
 import re
 import sys
@@ -279,7 +279,7 @@ def p_ExpAux(p):
         elif len(p) == 7:
             p[0] = Node("ArrayOp", "ArrayAsig", [p[1], p[3], p[5]])
         elif len(p) == 3:
-            p[0] = Node("BoolOp", "Not", [p[2]])
+            p[0] = BoolOpNotNode("BoolOp", "Not", [p[2]])
         else:
             #print("Last")
             p[0] = p[1]
