@@ -8,7 +8,7 @@
 #Actualización: YA arreglé el detalle de la gramática
 
 from CustomLexer import CustomLexer
-from AST import Node, DecNode, BlockNode, ForNode, BinOpNode, UnaryMinusNode, FunctionNode, BinOpRelNode, BinOpBoolNode, BinOpEqualNode, BoolOpNotNode
+from AST import Node, DecNode, BlockNode, ForNode, BinOpNode, UnaryMinusNode, FunctionNode, BinOpRelNode, BinOpBoolNode, BinOpEqualNode, BoolOpNotNode, printNode
 import ply.yacc as yacc
 import re
 import sys
@@ -151,14 +151,14 @@ def p_Printing(p):
     #print("Regla15")
     if len(p) == 3:
         if type(p[2]) is str:
-            p[0] = Node(p[1], p[1], [Node("String", p[2])])
+            p[0] = PrintNode(p[1], p[1], [Node("String", p[2])])
         else:
-            p[0] = Node(p[1], p[1], [Node("Exp", "Exp", [p[2]])])
+            p[0] = PrintNode(p[1], p[1], [Node("Exp", "Exp", [p[2]])])
     else:
         if type(p[2]) is str:
-            p[0] = Node(p[1], p[1], [Node("String", p[2]) , Node("Concat", "Concat", [p[4]])])
+            p[0] = PrintNode(p[1], p[1], [Node("String", p[2]) , Node("Concat", "Concat", [p[4]])])
         else:
-            p[0] = Node(p[1], p[1], [Node("Exp", "Exp", [p[2]]) , Node("Concat", "Concat", [p[4]])])
+            p[0] = PrintNode(p[1], p[1], [Node("Exp", "Exp", [p[2]]) , Node("Concat", "Concat", [p[4]])])
 
 def p_Read(p):
     '''Read : Tkread TkId'''
