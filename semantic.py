@@ -8,7 +8,7 @@
 #Actualización: YA arreglé el detalle de la gramática
 
 from CustomLexer import CustomLexer
-from AST import Node, DecNode, BlockNode, ForNode, BinOpNode, UnaryMinusNode, FunctionNode, BinOpRelNode, BinOpBoolNode, BinOpEqualNode, BoolOpNotNode, printNode
+from AST import Node, DecNode, BlockNode, ForNode, BinOpNode, UnaryMinusNode, FunctionNode, BinOpRelNode, BinOpBoolNode, BinOpEqualNode, BoolOpNotNode, PrintNode
 import ply.yacc as yacc
 import re
 import sys
@@ -347,8 +347,8 @@ precedence = (
     ('left', 'TkTwoPoints'),
     #('left', 'TkId', 'TkInt', 'TkBool', 'TkArray'),
     #('right', 'TkAsig'),
-    ('left', 'TkEqual', 'TkNequal'),
     ('left', 'TkOr'), ('left', 'TkAnd'), ('right', 'TkNot'),
+    ('left', 'TkEqual', 'TkNequal'),
     ('nonassoc', 'TkLess', 'TkLeq', 'TkGeq', 'TkGreater'),
     ('right', 'TkComma'), 
     ('left', 'TkOBracket'), 

@@ -814,7 +814,6 @@ class Node:
         iterator = iterator + 1
         return self.evalFor(stack, iterator) ## Creamos otro ciclo del For
 
-
     def evalPrintAux(self, stack):
         self.buildPrint(self.evalPrint(stack) + self.children[1].evaluatorAux(stack))
         if(self.category == 'print'):
@@ -825,7 +824,7 @@ class Node:
 
     def evalPrint(self, stack):
         return self.children[0].evalStringContent(stack)
-        
+
     def evalStringContent(self, stack):
         if self.category == "Exp":
             if self.children[0].checkArithmeticExp(stack, True):
@@ -843,25 +842,31 @@ class Node:
         else:
             return self.children[0].evalStringContent(stack)
 
+    def evalConcat(self, stack):
+        if self.children[0].category == "Concat":
+            return self.children[0].children[0].evalStringContent(stack) + self.children[0].children[1].evalPrint(stack)
+        else:
+            return self.children[0].evalStringContent(stack)
+
     def evalAsig(self, stack):
         tipo = self.children[0].searchTables(stack)
         if getTipo(tipo) == "int":
             result = self.children[1].children[0].evalArithmeticExp(stack)
-            print(self.children[0].getValue())
-            print(result)
+            # print(self.children[0].getValue())
+            # print(result)
             self.children[0].setVarValue(stack, result)
             return True
         elif getTipo(tipo) == "bool":
             result = self.children[1].children[0].evalBoolExp(stack)
             self.children[0].setVarValue(stack, result)
-            print(self.children[0].getValue())
-            print(result)
+            # print(self.children[0].getValue())
+            # print(result)
             return True
         else:
             result = self.children[1].children[0].evalArrayExp(stack)
             self.children[0].setArrayValue(stack, result)
-            print(self.children[0].getValue())
-            print(result)
+            # print(self.children[0].getValue())
+            # print(result)
             return True
 
     def evalArithmeticExp(self, stack):
