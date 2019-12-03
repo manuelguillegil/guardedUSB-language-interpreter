@@ -805,7 +805,7 @@ class Node:
             elif self.children[0].checkArrayExpIndependent(stack):
                 return str(self.children[0].evalArrayExp(stack))
         else:
-            return str(self.children[0])
+            return str(self.value)
 
     def evalConcat(self, stack):
         if self.children[0].category == "Concat":
@@ -1144,9 +1144,11 @@ class PrintNode(Node):
             print(self.elementToPrint)
         else: 
             print("Lo que se quiere imprimir está vacío")
+        self.elementToPrint = ""
 
     def print(self):
         if(self.elementToPrint != None):
             print(self.elementToPrint, end='')
         else: 
             print("Lo que se quiere imprimir está vacío")
+        self.elementToPrint = ""
