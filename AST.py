@@ -36,6 +36,12 @@ def getTipoCompleto(value):
     else:
         return value[0]
 
+def getBoolean(value):
+    if value == "true":
+        return True
+    else:
+        return False
+
 ########## Borrar esta función si al final no se utiliza ####################
 def searchByName(varName, stack):
     for i in range(len(stack)):
@@ -468,10 +474,16 @@ class Node:
     def checkBoolExp(self, stack, cont=None):
         if self.category == "BinOp":
             if self.children[0].checkBoolExp(stack, True) and self.children[1].checkBoolExp(stack, True):
-                self.value = "BoolEqual"
+                if self.getValue() == "Equals":
+                    self.value = "BoolEqual"
+                else:
+                    self.value = "BoolNequal"
                 return True
             elif self.children[0].checkArithmeticExp(stack, True) and self.children[1].checkArithmeticExp(stack, True):
-                self.value = "ArithEqual"
+                if self.getValue() == "Equals":
+                    self.value = "ArithEqual"
+                else:
+                    self.value = "ArithNequal"
                 return True
             else:
                 print("Error: El operador " + self.getValue() + " no está comparando expresiones del mismo tipo o está comparando arrays")
@@ -759,16 +771,33 @@ class Node:
     def evalRead(self, stack):
         tipo = self.children[0].searchTables(stack)
         if isinstance(tipo, ArrayInfo):
-            arrayItems = input("Introduzca arreglo de longitud " + str(tipo.getLength()) + ": ")
-            items = arrayItems.split(",")
             while True:
                 try:
+                    arrayItems = input("Introduzca arreglo de longitud " + str(tipo.getLength()) + ": ")
+                    items = arrayItems.split(",")
                     newArray = [int(i) for i in items]
+                    assert(len(newArray) == tipo.getLength())
                     break
                 except:
-                    print("Error: Arreglo introducido en el formato incorrecto")
+                    print("Error. Pudo ser por: No utilizar el formato correcto, no utilizar literales numéricos o por cantidad incorrecta de elementos")
+            self.children[0].setArrayValue(stack, newArray)
         else:
-            item = input("Introduzca una variable de tipo") ##No he terminado, to do
+            while True:
+                try:
+                    item = input("Introduzca una variable de tipo " + tipo[0] + ": ")
+                    if item == "true" or item == "false":
+                        assert tipo[0] == "bool"
+                        value = getBoolean(item)
+                        break
+                    else:
+                        value = int(item)
+                        break
+                except:
+                    print("Error: La información introducida no se corresponde al tipo de la variable")
+
+            self.children[0].setVarValue(stack, value)
+
+        return True
 
     def evalFor(self, stack, numIteraccion):
         iterator = numIteraccion
@@ -778,12 +807,12 @@ class Node:
 
         if (numIteraccion == totalNumIteration):
             return True
-            totalNumIteration = end - start
+            #totalNumIteration = end - start
 
         ## Este es el Programblock
         self.children[1].evaluatorAux(stack)
         iterator = iterator + 1
-        self.evalFor(stack, iterator) ## Creamos otro ciclo del For
+        return self.evalFor(stack, iterator) ## Creamos otro ciclo del For
 
     def evalPrintAux(self, stack):
         self.buildPrint(self.evalPrint(stack) + self.children[1].evaluatorAux(stack))
@@ -795,7 +824,7 @@ class Node:
 
     def evalPrint(self, stack):
         return self.children[0].evalStringContent(stack)
-        
+
     def evalStringContent(self, stack):
         if self.category == "Exp":
             if self.children[0].checkArithmeticExp(stack, True):
@@ -813,26 +842,31 @@ class Node:
         else:
             return self.children[0].evalStringContent(stack)
 
+    def evalConcat(self, stack):
+        if self.children[0].category == "Concat":
+            return self.children[0].children[0].evalStringContent(stack) + self.children[0].children[1].evalPrint(stack)
+        else:
+            return self.children[0].evalStringContent(stack)
+
     def evalAsig(self, stack):
         tipo = self.children[0].searchTables(stack)
         if getTipo(tipo) == "int":
             result = self.children[1].children[0].evalArithmeticExp(stack)
-            print(self.children[0].getValue())
-            print(result)
+            # print(self.children[0].getValue())
+            # print(result)
             self.children[0].setVarValue(stack, result)
             return True
         elif getTipo(tipo) == "bool":
-            if self.children[1].children[0].checkBoolExp(stack):
-                result = self.children[1].children[0].evalBoolExp(stack)
-                self.children[0].setArrayValue(stack, result)
-                print(self.children[0].getValue())
-                print(result)
-                return True
+            result = self.children[1].children[0].evalBoolExp(stack)
+            self.children[0].setVarValue(stack, result)
+            # print(self.children[0].getValue())
+            # print(result)
+            return True
         else:
             result = self.children[1].children[0].evalArrayExp(stack)
             self.children[0].setArrayValue(stack, result)
-            print(self.children[0].getValue())
-            print(result)
+            # print(self.children[0].getValue())
+            # print(result)
             return True
 
     def evalArithmeticExp(self, stack):
@@ -866,23 +900,30 @@ class Node:
 
     def evalBoolExp(self, stack):
         if isinstance(self, BinOpRelNode):
-            op1 = self.children[0].evalBoolExp(stack)
-            op2 = self.children[1].evalBoolExp(stack)
+            op1 = self.children[0].evalArithmeticExp(stack)
+            op2 = self.children[1].evalArithmeticExp(stack)
             return self.efectuateOperation(op1, op2)
         if isinstance(self, BinOpBoolNode):
             op1 = self.children[0].evalBoolExp(stack)
             op2 = self.children[1].evalBoolExp(stack)
             return self.efectuateOperation(op1, op2)
         if isinstance(self, BinOpEqualNode):
-            op1 = self.children[0].evalBoolExp(stack)
-            op2 = self.children[1].evalBoolExp(stack)
+            if (self.getValue() == "ArithEqual" or self.getValue() == "ArithNequal"):
+                op1 = self.children[0].evalArithmeticExp(stack)
+                op2 = self.children[1].evalArithmeticExp(stack)
+            else:
+                op1 = self.children[0].evalBoolExp(stack)
+                op2 = self.children[1].evalBoolExp(stack)
             return self.efectuateOperation(op1, op2)
+        if isinstance(self, BoolOpNotNode):
+            op1 = self.children[0].evalBoolExp(stack)
+            return self.efectuateOperation(op1)
         elif self.category == "Exp":
             return self.children[0].evalBoolExp(stack)
         elif self.category == "Ident":
             return self.checkInitIdent(stack)
         elif self.category == "Literal":
-            return self.getValue()
+            return getBoolean(self.getValue())
         else:
             print("El operador " + self.value + " no es válido en esta expresión")
             sys.exit()
@@ -897,7 +938,26 @@ class Node:
                 return newArray
         else:
             if self.category == "Ident":
-                return self.checkInitIdent(stack).getArrayItems()
+                return self.checkInitIdent(stack)
+
+    def evalGuard(self, stack, iterator=None):
+        if self.children[0].children[0].evalBoolExp(stack):
+            iterator[0] = True
+            return self.children[1].evaluatorAux(stack)
+        else:
+            if (len(self.children) == 3):
+                return self.children[2].evalGuard(stack, iterator)
+            else:
+                return True
+
+    def evalDo(self, stack):
+        iterator = [False]
+        self.children[0].evalGuard(stack, iterator)
+        while iterator[0]:
+            iterator[0] = False
+            self.children[0].evalGuard(stack, iterator)
+
+        return True
 
     def evaluator(self):
         tableStack = []
@@ -916,7 +976,11 @@ class Node:
         elif self.category == "Read":
             return self.evalRead(stack)
         elif self.category == "For":
-            self.evalFor(stack, 0)
+            return self.evalFor(stack, 0)
+        elif self.category == "if":
+            return self.children[0].evalGuard(stack)
+        elif self.category == "do":
+            return self.evalDo(stack)
         elif self.category == "print" or self.category == "println":
             if len(self.children) == 1:
                 self.evalPrint(stack)
@@ -1120,13 +1184,22 @@ class BinOpEqualNode(Node):
         self.result = None
 
     def efectuateOperation(self, op1, op2):
-        if self.getValue() == "Equals":
+        if self.getValue() == "ArithEqual" or self.getValue() == "BoolEqual":
             self.result = op1 == op2
-        elif self.getValue() == "Nequals":
+        else:
             self.result = op1 != op2
 
         return self.result
 
+class BoolOpNotNode(Node):
+    def __init__(self, category, value, children=None):
+        super().__init__(category, value, children)
+        self.result = None
+
+    def efectuateOperation(self, op):
+        self.result = not op
+        return self.result
+        
 class PrintNode(Node):
 
     def __init__(self, category, value, children=None):
