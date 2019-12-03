@@ -832,9 +832,28 @@ class Node:
             elif self.children[0].checkBoolExp(stack, True):
                 return str(self.children[0].evalBoolExp(stack))
             elif self.children[0].checkArrayExpIndependent(stack):
-                return str(self.children[0].evalArrayExp(stack))
+                return str(self.children[0].evalArrayExpForPrint(stack))
         else:
             return str(self.value)
+
+    def checkInitIdentForPrint(self, stack):
+        idValue = self.searchTables(stack)
+        mi = idValue.getMin()
+        ma = idValue.getMax()
+        if idValue[idValue.getMin()] is not None:
+            arrayInfo = idValue.getArrayItems()
+            resultForPrint = ''
+            i = mi
+            while i < ma + 1:
+                if(i != ma):
+                    resultForPrint = resultForPrint + str(i) + ':' + str(arrayInfo[0]) + ', '
+                else:
+                    resultForPrint = resultForPrint + str(i) + ':' + str(arrayInfo[0])
+                i += 1
+            return resultForPrint
+        else:
+            print("Error: Variable " + self.value + " no inicializada")
+            sys.exit()
 
     def evalConcat(self, stack):
         if self.children[0].category == "Concat":
@@ -939,6 +958,18 @@ class Node:
         else:
             if self.category == "Ident":
                 return self.checkInitIdent(stack)
+
+    def evalArrayExpForPrint(self, stack):
+        if self.category == "ArrayOp":
+            if self.value == "ArrayAsig":
+                return self.arrayValue(stack).getArrayItems()
+            elif self.value == "ArrElementInit":
+                newArray = []
+                self.InitializeArray(stack, newArray)
+                return newArray
+        else:
+            if self.category == "Ident":
+                return self.checkInitIdentForPrint(stack)
 
     def evalGuard(self, stack, iterator=None):
         if self.children[0].children[0].evalBoolExp(stack):
