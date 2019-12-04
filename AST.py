@@ -965,6 +965,8 @@ class Node:
             if self.category == "Ident":
                 return self.checkInitIdent(stack)
 
+    ## Nos permite evaluar las expresiones de tipo array en un print, con la diferencia de cuando el category es Ident, se hace un llamado
+    ## a la función checkInitIdentForPrint
     def evalArrayExpForPrint(self, stack):
         if self.category == "ArrayOp":
             if self.value == "ArrayAsig":
@@ -977,6 +979,8 @@ class Node:
             if self.category == "Ident":
                 return self.checkInitIdentForPrint(stack)
 
+    ## Evaluamos las guardias, para ello también vamos a tener un parametro iterator. Evaluamos la expresión booleana a la guardia 
+    ## y si es True, evaluamos el bloque de código de instrucciones asociado. Si la longitud es 3, seguimos evaluando las guardias
     def evalGuard(self, stack, iterator=None):
         if self.children[0].children[0].evalBoolExp(stack):
             iterator[0] = True
@@ -987,6 +991,7 @@ class Node:
             else:
                 return True
 
+    ## Nos permite evaluar el Do, donde para el iterador igual a False, vamos a evaluar cada guardia hasta que el iterator sea True
     def evalDo(self, stack):
         iterator = [False]
         self.children[0].evalGuard(stack, iterator)
@@ -996,10 +1001,13 @@ class Node:
 
         return True
 
+    ## Esta función es la que llamamos desde el archivo de la semantica, nos permite inicializar nuestra pila y hacer un llamado al evaluatorAux 
+    ## que hace una evaluación dependiendo de la instrucción
     def evaluator(self):
         tableStack = []
         return self.evaluatorAux(tableStack)
 
+    ## Esta función nos permite dependiendo del tipo de instrucción, hacer las evaluaciones correspondientes
     def evaluatorAux(self, stack):
         if isinstance(self, BlockNode):
             return self.evalBlock(stack)
@@ -1025,11 +1033,6 @@ class Node:
                 return self.evalPrintAux(stack)
         elif self.category == "Concat":
             return self.evalConcat(stack)
-
-
-
-
-
 
     ############################################################################################################
 
@@ -1116,6 +1119,7 @@ class BlockNode(Node):
         else:
             return self.children[0].checkStaticErrorsAux(stack)
 
+    ## Luego de verificar si existen errores estáticos en el bloque, vamos a evaluar cada instruccción
     def evalBlock(self, stack):
         if bool(self.symbol_table.getTable()):
             stack.insert(0, self.symbol_table)
@@ -1135,6 +1139,8 @@ class BlockNode(Node):
         else:
             return self.children[0].evaluatorAux(stack)
 
+## Creamos un Nodo para las operaciones binarias, de forma que podamos tener un atributo con el resultado y podamos diferenciar en 
+## un método de efectuar la operación qe tipo de operación se va hacer
 class BinOpNode(Node):
 
     def __init__(self, category, value, children=None):
@@ -1154,7 +1160,9 @@ class BinOpNode(Node):
             self.result = op1 % op2
 
         return self.result
-        
+
+## Creamos un Nodo para las operaciones unarias, de forma que podamos tener un atributo con el resultado y podamos diferenciar en 
+## un método de efectuar la operación qe tipo de operación se va hacer
 class UnaryMinusNode(Node):
 
     def __init__(self, category, value, children=None):
@@ -1165,6 +1173,8 @@ class UnaryMinusNode(Node):
         self.result = -1 * op
         return self.result
 
+## Creamos un Nodo para la función, de forma que podamos tener un atributo con el resultado y podamos diferenciar en 
+## un método de efectuar la operación qe tipo de función se está realizando
 class FunctionNode(Node):
     def __init__(self, category, value, children=None):
         super().__init__(category, value, children)
@@ -1182,6 +1192,8 @@ class FunctionNode(Node):
 
         return self.result
 
+## Creamos un Nodo para las operaciones de tipo relaciones, de forma que podamos tener un atributo con el resultado y podamos diferenciar en 
+## un método de efectuar la operación qe tipo de relación se está haciendo
 class BinOpRelNode(Node):
 
     def __init__(self, category, value, children=None):
@@ -1200,6 +1212,8 @@ class BinOpRelNode(Node):
 
         return self.result
 
+## Creamos un Nodo para las operaciones booleanas, de forma que podamos tener un atributo con el resultado y podamos diferenciar en 
+## un método de efectuar la operación que tipo de operación se va hacer
 class BinOpBoolNode(Node):
 
     def __init__(self, category, value, children=None):
@@ -1214,6 +1228,8 @@ class BinOpBoolNode(Node):
 
         return self.result
 
+## Creamos un Nodo para las operaciones de igualdad y no igualdad, de forma que podamos tener un atributo con el resultado y podamos diferenciar en 
+## un método de efectuar la operación qe tipo de operación se va hacer
 class BinOpEqualNode(Node):
 
     def __init__(self, category, value, children=None):
@@ -1228,6 +1244,8 @@ class BinOpEqualNode(Node):
 
         return self.result
 
+## Creamos un Nodo para las operaciones de tipo not, de forma que podamos tener un atributo con el resultado y podamos diferenciar en 
+## un método de efectuar la operación correspondiente
 class BoolOpNotNode(Node):
     def __init__(self, category, value, children=None):
         super().__init__(category, value, children)
@@ -1237,6 +1255,7 @@ class BoolOpNotNode(Node):
         self.result = not op
         return self.result
         
+## Creamos un Nodo para el print, el cual nos permite mediante el método de buildPrint construir el print que queremos.
 class PrintNode(Node):
 
     def __init__(self, category, value, children=None):
