@@ -758,6 +758,7 @@ class Node:
         else:
             return copy
 
+    ## Inicializa el Array con los valores que le corresponde
     def InitializeArray(self, stack, newArray):
         element = self.children[0].evalArithmeticExp(stack)
         newArray.append(element)
@@ -768,6 +769,8 @@ class Node:
                 element = self.children[1].evalArithmeticExp(stack)
                 newArray.append(element)
 
+    ## Es la evaluación del Read. Tenemos el caso de introducir un arreglo y un variable que se le pedirá al usuario que ingrese
+    ## Además al preguntar al usuario, se le muestra el tipo de variable o la longitud correspondiente al arreglo
     def evalRead(self, stack):
         tipo = self.children[0].searchTables(stack)
         if isinstance(tipo, ArrayInfo):
@@ -799,6 +802,8 @@ class Node:
 
         return True
 
+    ## Función de evaluación de la instrucción del For. Obtenemos los indices correspondientes (inicio y fin) para crear un intervalo
+    ## de iteracciones, para cada iteracción se evaluará el bloque que contiene el código del For
     def evalFor(self, stack, numIteraccion):
         iterator = numIteraccion
         start = self.children[0].children[0].children[0].evalArithmeticExp(stack)
@@ -814,6 +819,7 @@ class Node:
         iterator = iterator + 1
         return self.evalFor(stack, iterator) ## Creamos otro ciclo del For
 
+    ## Esta función nos permite diferenciar entre println y print. Además de "construir" el o los valores concatenados para imprimir
     def evalPrintAux(self, stack):
         self.buildPrint(self.evalPrint(stack) + self.children[1].evaluatorAux(stack))
         if(self.category == 'print'):
@@ -822,9 +828,13 @@ class Node:
             self.println()
         return True
 
+    ## Nos permite evaluar el contenido del String dependiendo del caso y del tipo
     def evalPrint(self, stack):
         return self.children[0].evalStringContent(stack)
 
+    ## Esta función evalúa el contenido del String dado, si es de tipo aritmético o booleano los evalúa correspondientemente
+    ## En cambio si es array, además de evaluarlo y obtener la lista de items, irá construyendo el print como corresponde (la relación de
+    ## cada item con el indice que pertenece)
     def evalStringContent(self, stack):
         if self.category == "Exp":
             if self.children[0].checkArithmeticExp(stack, True):
@@ -832,43 +842,56 @@ class Node:
             elif self.children[0].checkBoolExp(stack, True):
                 return str(self.children[0].evalBoolExp(stack))
             elif self.children[0].checkArrayExpIndependent(stack):
-                return str(self.children[0].evalArrayExp(stack))
+                return str(self.children[0].evalArrayExpForPrint(stack))
         else:
             return str(self.value)
 
+    ## Chequea el Ident para un arreglo, pero además nos ayuda a construir para el print de arreglo para cada item, el print correspondiente
+    ## con el indice en el cual forma parte
+    def checkInitIdentForPrint(self, stack):
+        idValue = self.searchTables(stack)
+        mi = idValue.getMin()
+        ma = idValue.getMax()
+        if idValue[idValue.getMin()] is not None:
+            arrayInfo = idValue.getArrayItems()
+            resultForPrint = ''
+            i = mi
+            while i < ma + 1:
+                if(i != ma):
+                    resultForPrint = resultForPrint + str(i) + ':' + str(arrayInfo[0]) + ', '
+                else:
+                    resultForPrint = resultForPrint + str(i) + ':' + str(arrayInfo[0])
+                i += 1
+            return resultForPrint
+        else:
+            print("Error: Variable " + self.value + " no inicializada")
+            sys.exit()
+
+    ## Esta función evalua la concatenación teniendo a la expresión que le corresponde al hijo del nodo, evaluando el contenido del String 
+    ## ya que lo utilizaremos para efectos del print
     def evalConcat(self, stack):
         if self.children[0].category == "Concat":
             return self.children[0].children[0].evalStringContent(stack) + self.children[0].children[1].evalPrint(stack)
         else:
             return self.children[0].evalStringContent(stack)
 
-    def evalConcat(self, stack):
-        if self.children[0].category == "Concat":
-            return self.children[0].children[0].evalStringContent(stack) + self.children[0].children[1].evalPrint(stack)
-        else:
-            return self.children[0].evalStringContent(stack)
-
+    ## Evalúa la instrucción de la Asignación, en donde para el tipo de dato correspondiente, asignamos el valor a la variable
     def evalAsig(self, stack):
         tipo = self.children[0].searchTables(stack)
         if getTipo(tipo) == "int":
             result = self.children[1].children[0].evalArithmeticExp(stack)
-            # print(self.children[0].getValue())
-            # print(result)
             self.children[0].setVarValue(stack, result)
             return True
         elif getTipo(tipo) == "bool":
             result = self.children[1].children[0].evalBoolExp(stack)
             self.children[0].setVarValue(stack, result)
-            # print(self.children[0].getValue())
-            # print(result)
             return True
         else:
             result = self.children[1].children[0].evalArrayExp(stack)
             self.children[0].setArrayValue(stack, result)
-            # print(self.children[0].getValue())
-            # print(result)
             return True
 
+    ## Esta función nos permite evaluar las expresiones ariméticas
     def evalArithmeticExp(self, stack):
         if isinstance(self, BinOpNode):
             op1 = self.children[0].evalArithmeticExp(stack)
@@ -898,6 +921,7 @@ class Node:
             print("El operador " + self.value + " no es válido en esta expresión")
             sys.exit()
 
+    ## Esta función nos permite evaluar las expresiones booleanas
     def evalBoolExp(self, stack):
         if isinstance(self, BinOpRelNode):
             op1 = self.children[0].evalArithmeticExp(stack)
@@ -928,6 +952,7 @@ class Node:
             print("El operador " + self.value + " no es válido en esta expresión")
             sys.exit()
 
+    ## Esta función nos permite evaluar las expresiones de tipo array
     def evalArrayExp(self, stack):
         if self.category == "ArrayOp":
             if self.value == "ArrayAsig":
@@ -939,6 +964,18 @@ class Node:
         else:
             if self.category == "Ident":
                 return self.checkInitIdent(stack)
+
+    def evalArrayExpForPrint(self, stack):
+        if self.category == "ArrayOp":
+            if self.value == "ArrayAsig":
+                return self.arrayValue(stack).getArrayItems()
+            elif self.value == "ArrElementInit":
+                newArray = []
+                self.InitializeArray(stack, newArray)
+                return newArray
+        else:
+            if self.category == "Ident":
+                return self.checkInitIdentForPrint(stack)
 
     def evalGuard(self, stack, iterator=None):
         if self.children[0].children[0].evalBoolExp(stack):
