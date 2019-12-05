@@ -75,7 +75,7 @@ class CustomLexer(object):
     t_TkCBracket = r'\]'
     t_TkTwoPoints = r':'
     t_TkConcat = r'\|\|'
-    t_TkString = r'(")[a-zA-Z0-9_(\n) \":;\\ \]\[\.(!)(?)]*(")'
+    t_TkString = r'(")[a-zA-Z0-9_(\n) \":\\ \]\[\.(!)(?)]*(")'
 
     # Concatenamos los tokens y las palabras reservadas
     tokens = tokens + list(reservadas.values())
