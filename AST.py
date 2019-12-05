@@ -1167,7 +1167,18 @@ class BlockNode(Node):
                 return child1 and child2
 
         else:
-            return self.children[0].evaluatorAux(stack)
+            stack.insert(0, self.symbol_table)
+            if (len(self.children) == 1):
+                return self.children[0].evaluatorAux(stack)
+            else:
+                stackLength = len(stack)
+                child1 = self.children[0].evaluatorAux(stack)
+                while len(stack) != stackLength:
+                    stack.pop(0)
+                child2 = self.children[1].evaluatorAux(stack)
+
+                stack.pop(0)
+                return child1 and child2
 
 ## Creamos un Nodo para las operaciones binarias, de forma que podamos tener un atributo con el resultado y podamos diferenciar en 
 ## un método de efectuar la operación qe tipo de operación se va hacer
