@@ -831,18 +831,25 @@ class Node:
 
     ## Esta función nos permite diferenciar entre println y print. Además de "construir" el o los valores concatenados para imprimir
     def evalPrintAux(self, stack):
-        self.buildPrint(self.evalPrint(stack, False) + self.children[1].evaluatorAux(stack))
-        if(self.category == 'print'):
-            self.print()
-        else:
-            self.println()
-        return True
+        if(len(self.children) > 1):
+            self.buildPrint(self.evalPrint(stack, False) + self.children[1].evaluatorAux(stack))
+            if(self.category == 'print'):
+                self.print()
+            else:
+                self.println()
+                return True
+        else: 
+            self.buildPrint(self.evalPrint(stack, False))
+            if(self.category == 'print'):
+                self.print()
+            else:
+                self.println()
+                return True
 
     ## Nos permite evaluar el contenido del String dependiendo del caso y del tipo
     def evalPrint(self, stack, printNow):
         if printNow:
-            print(self.children[0].evalStringContent(stack))
-            return True
+            return self.children[0].evalStringContent(stack)
         return self.children[0].evalStringContent(stack)
 
     ## Esta función evalúa el contenido del String dado, si es de tipo aritmético o booleano los evalúa correspondientemente
@@ -855,7 +862,7 @@ class Node:
             return str(self.children[0].evalBoolExp(stack))
         elif self.value == "ArrayExp":
             return str(self.children[0].evalArrayExpForPrint(stack))
-        else:
+        elif self.category == "String":
             return str(self.value)
 
     ## Chequea el Ident para un arreglo, pero además nos ayuda a construir para el print de arreglo para cada item, el print correspondiente
@@ -883,7 +890,7 @@ class Node:
     ## ya que lo utilizaremos para efectos del print
     def evalConcat(self, stack):
         if self.children[0].category == "Concat":
-            return self.children[0].children[0].evalStringContent(stack) + self.children[0].children[1].evalPrint(stack, False)
+            return self.children[0].children[0].evalStringContent(stack) + self.children[0].children[1].evalConcat(stack)
         else:
             return self.children[0].evalStringContent(stack)
 
@@ -1051,7 +1058,7 @@ class Node:
             return self.evalDo(stack)
         elif self.category == "print" or self.category == "println":
             if len(self.children) == 1:
-                self.evalPrint(stack, True)
+                self.evalPrintAux(stack)
             else:
                 return self.evalPrintAux(stack)
         elif self.category == "Concat":
