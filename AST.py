@@ -145,7 +145,7 @@ class Symbol_Table:
     # var: Variable de control del ciclo for 
     def fillTableFor(self, var):
         if var is not None:
-            self.table[var] = (var, None)
+            self.table[var] = ("int", None)
 
     # Imprime la tabla de símbolos
     # Parámetro: 
@@ -227,12 +227,12 @@ class Node:
     #Retorna:
     # El objeto asociado al identificador dentro de la tabla más interna en la que se encuentre dicho identificador
     # si el identificador está en una tabla. None si no
-    def searchTables(self, symbolTableStack):
+    def searchTables(self, symbolTableStack, change=None):
         varType = None
         for i in range(len(symbolTableStack)):
             varType = symbolTableStack[i].getValue(self.value)
             if varType is not None:
-                if symbolTableStack[i].isFor:
+                if symbolTableStack[i].isFor and change == True:
                     print("Error: Se está intentando manipular una variable de control de ciclo for")
                     sys.exit()
                 return varType
@@ -442,7 +442,7 @@ class Node:
     # Si esta función o alguna de las funciones que llama detecta un error semántico muestra un mensaje de error y aborta
     #la ejecución del programa
     def checkAsig(self, stack):
-        tipo = self.children[0].searchTables(stack)
+        tipo = self.children[0].searchTables(stack, True)
         if tipo is not None:
             if getTipo(tipo) == "int":
                 if self.children[1].children[0].checkArithmeticExp(stack):
@@ -619,6 +619,9 @@ class Node:
             if (len(self.children) > 2):  
                 child1 = self.children[1].checkStaticErrorsAux(stack) 
                 child2 = self.children[2].checkStaticErrorsAux(stack)
+                if (len(self.children) == 4):
+                    child3 = self.children[3].checkStaticErrorsAux(stack)
+                    return child1 and child2 and child3
                 return child1 and child2
             else: 
                 return self.children[1].checkStaticErrorsAux(stack)
@@ -679,9 +682,12 @@ class Node:
             varType = symbolTableStack[i].getValue(self.value)
             if varType is not None:
                 symbolTableStack[i].setValue(self.value, (varType[0], newValue))
-            else:
-                print("Error en ejecución: setVarValue")
-                sys.exit()
+                return
+
+        if varType is None:
+            print("Error en ejecución: setVarValue")
+            print(self.value)
+            sys.exit()
 
     def setArrayValue(self, symbolTableStack, newValue):
         varType = None
@@ -690,9 +696,11 @@ class Node:
             if varType is not None:
                 varType.copyArray(newValue)
                 symbolTableStack[i].setValue(self.value, varType)
-            else:
-                print("Error en ejecución: setArrayValue")
-                sys.exit()
+                return
+
+        if varType is None:
+            print("Error en ejecución: setArrayValue")
+            sys.exit()
 
     #Retorna el valor de una variable. Si no ha sido inicializada, devuelve error
     def checkInitIdent(self, stack):
@@ -716,7 +724,7 @@ class Node:
         if self.children[0].category == "Ident":
             array = self.children[0].searchTables(stack)
             if array[array.getMin()] == None:
-                print("Error: El arreglo " + self.getValue() + " no ha sido inicializado")
+                print("Error: El arreglo " + self.children[0].getValue() + " no ha sido inicializado")
                 sys.exit()
         else:
             array = self.children[0].findArray(stack)
@@ -808,7 +816,9 @@ class Node:
         iterator = numIteraccion
         start = self.children[0].children[0].children[0].evalArithmeticExp(stack)
         end = self.children[0].children[0].children[1].evalArithmeticExp(stack)
-        totalNumIteration = end - start
+        totalNumIteration = end - start + 1
+
+        self.children[0].children[0].setVarValue(stack, start + iterator)
 
         if (numIteraccion == totalNumIteration):
             return True
@@ -821,7 +831,7 @@ class Node:
 
     ## Esta función nos permite diferenciar entre println y print. Además de "construir" el o los valores concatenados para imprimir
     def evalPrintAux(self, stack):
-        self.buildPrint(self.evalPrint(stack) + self.children[1].evaluatorAux(stack))
+        self.buildPrint(self.evalPrint(stack, False) + self.children[1].evaluatorAux(stack))
         if(self.category == 'print'):
             self.print()
         else:
@@ -829,20 +839,22 @@ class Node:
         return True
 
     ## Nos permite evaluar el contenido del String dependiendo del caso y del tipo
-    def evalPrint(self, stack):
+    def evalPrint(self, stack, printNow):
+        if printNow:
+            print(self.children[0].evalStringContent(stack))
+            return True
         return self.children[0].evalStringContent(stack)
 
     ## Esta función evalúa el contenido del String dado, si es de tipo aritmético o booleano los evalúa correspondientemente
     ## En cambio si es array, además de evaluarlo y obtener la lista de items, irá construyendo el print como corresponde (la relación de
     ## cada item con el indice que pertenece)
     def evalStringContent(self, stack):
-        if self.category == "Exp":
-            if self.children[0].checkArithmeticExp(stack, True):
-                return str(self.children[0].evalArithmeticExp(stack))
-            elif self.children[0].checkBoolExp(stack, True):
-                return str(self.children[0].evalBoolExp(stack))
-            elif self.children[0].checkArrayExpIndependent(stack):
-                return str(self.children[0].evalArrayExpForPrint(stack))
+        if self.value == "ArithExp":
+            return str(self.children[0].evalArithmeticExp(stack))
+        elif self.value == "BoolExp":
+            return str(self.children[0].evalBoolExp(stack))
+        elif self.value == "ArrayExp":
+            return str(self.children[0].evalArrayExpForPrint(stack))
         else:
             return str(self.value)
 
@@ -871,7 +883,7 @@ class Node:
     ## ya que lo utilizaremos para efectos del print
     def evalConcat(self, stack):
         if self.children[0].category == "Concat":
-            return self.children[0].children[0].evalStringContent(stack) + self.children[0].children[1].evalPrint(stack)
+            return self.children[0].children[0].evalStringContent(stack) + self.children[0].children[1].evalPrint(stack, False)
         else:
             return self.children[0].evalStringContent(stack)
 
@@ -880,6 +892,8 @@ class Node:
         tipo = self.children[0].searchTables(stack)
         if getTipo(tipo) == "int":
             result = self.children[1].children[0].evalArithmeticExp(stack)
+            # print(self.children[0].value)
+            # print(result)
             self.children[0].setVarValue(stack, result)
             return True
         elif getTipo(tipo) == "bool":
@@ -983,11 +997,17 @@ class Node:
     ## y si es True, evaluamos el bloque de código de instrucciones asociado. Si la longitud es 3, seguimos evaluando las guardias
     def evalGuard(self, stack, iterator=None):
         if self.children[0].children[0].evalBoolExp(stack):
-            iterator[0] = True
-            return self.children[1].evaluatorAux(stack)
+            if iterator is not None:
+                iterator[0] = True
+            if (len(self.children) > 2 and self.children[2].category != "Guard"):
+                return self.children[1].evaluatorAux(stack) and self.children[2].evaluatorAux(stack)
+            else:
+                return self.children[1].evaluatorAux(stack)
         else:
-            if (len(self.children) == 3):
+            if (len(self.children) == 3 and self.children[2].category == "Guard"):
                 return self.children[2].evalGuard(stack, iterator)
+            elif len(self.children) == 4:
+                return self.children[3].evalGuard(stack, iterator)
             else:
                 return True
 
@@ -1021,14 +1041,17 @@ class Node:
         elif self.category == "Read":
             return self.evalRead(stack)
         elif self.category == "For":
-            return self.evalFor(stack, 0)
+            stack.insert(0, self.children[0].children[0].symbol_table)
+            self.evalFor(stack, 0)
+            stack.pop(0)
+            return True
         elif self.category == "if":
             return self.children[0].evalGuard(stack)
         elif self.category == "do":
             return self.evalDo(stack)
         elif self.category == "print" or self.category == "println":
             if len(self.children) == 1:
-                self.evalPrint(stack)
+                self.evalPrint(stack, True)
             else:
                 return self.evalPrintAux(stack)
         elif self.category == "Concat":
